@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mysqladmin ping *)",
+      "Bash(npx serve *)",
+      "Bash(mvn clean *)",
+      "Bash(unzip -p \"d:/cursor/project/Engineering-Cost-Management-System/darft/RuoYi/RuoYi-Vue/ruoyi-admin/target/ruoyi-admin.jar\" BOOT-INF/classes/mapper/project/ProjInfoMapper.xml)",
+      "Read(//tmp/**)",
+      "Bash(\"C:/Program Files/Zulu/zulu-17/bin/jar.exe\" cf0 \"d:/cursor/project/Engineering-Cost-Management-System/darft/RuoYi/RuoYi-Vue/ruoyi-admin/target/ruoyi-admin.jar\" BOOT-INF META-INF)",
+      "Bash(\"C:/Program Files/Zulu/zulu-17/bin/jar.exe\" uf \"d:/cursor/project/Engineering-Cost-Management-System/darft/RuoYi/RuoYi-Vue/ruoyi-admin/target/ruoyi-admin.jar\" BOOT-INF/classes/mapper/project/ProjInfoMapper.xml)",
+      "Bash(unzip -p /tmp/ruoyi-admin.jar.bak BOOT-INF/classes/mapper/project/ProjInfoMapper.xml)",
+      "Bash(\"C:/Program Files/Zulu/zulu-17/bin/jar.exe\" uf /tmp/ruoyi-admin.jar.bak BOOT-INF/classes/mapper/project/ProjInfoMapper.xml)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  }
+}

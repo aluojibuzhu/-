@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ProjCostAllocationMapper">
+  <resultMap id="ProjCostAllocationResult" type="com.ruoyi.system.domain.project.ProjCostAllocation">
+    <id property="allocationId" column="allocation_id"/>
+    <result property="projId" column="proj_id"/>
+    <result property="nodeId" column="node_id"/>
+    <result property="categoryId" column="category_id"/>
+    <result property="categoryName" column="category_name"/>
+    <result property="allocationAmount" column="allocation_amount"/>
+  </resultMap>
+  <select id="selectByProjId" resultMap="ProjCostAllocationResult">select * from proj_cost_allocation where proj_id = #{projId} and del_flag = '0'</select>
+  <insert id="insertProjCostAllocation" parameterType="com.ruoyi.system.domain.project.ProjCostAllocation">insert into proj_cost_allocation(proj_id,node_id,category_id,category_name,allocation_amount,create_by,create_time,update_by,update_time) values(#{projId},#{nodeId},#{categoryId},#{categoryName},#{allocationAmount},#{createBy},now(),#{updateBy},now())</insert>
+  <update id="deleteByProjId">update proj_cost_allocation set del_flag='1' where proj_id=#{projId}</update>
+</mapper>
+

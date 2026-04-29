@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ProjWbsNodeMapper">
+  <resultMap id="ProjWbsNodeResult" type="com.ruoyi.system.domain.project.ProjWbsNode">
+    <id property="nodeId" column="node_id"/>
+    <result property="projId" column="proj_id"/>
+    <result property="nodeNo" column="node_no"/>
+    <result property="nodeName" column="node_name"/>
+    <result property="planFinishDate" column="plan_finish_date"/>
+    <result property="nodeBudget" column="node_budget"/>
+    <result property="orderNum" column="order_num"/>
+  </resultMap>
+  <select id="selectByProjId" resultMap="ProjWbsNodeResult">select * from proj_wbs_node where proj_id = #{projId} and del_flag = '0' order by order_num asc</select>
+  <insert id="insertProjWbsNode" parameterType="com.ruoyi.system.domain.project.ProjWbsNode" useGeneratedKeys="true" keyProperty="nodeId">insert into proj_wbs_node(proj_id,node_no,node_name,plan_finish_date,node_budget,order_num,create_by,create_time,update_by,update_time) values(#{projId},#{nodeNo},#{nodeName},#{planFinishDate},#{nodeBudget},#{orderNum},#{createBy},now(),#{updateBy},now())</insert>
+  <update id="deleteByProjId">update proj_wbs_node set del_flag='1' where proj_id=#{projId}</update>
+</mapper>

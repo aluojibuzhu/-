@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ProjInfoMapper">
+  <resultMap id="ProjInfoResult" type="com.ruoyi.system.domain.project.ProjInfo">
+    <id property="projId" column="proj_id"/>
+    <result property="projNo" column="proj_no"/>
+    <result property="projName" column="proj_name"/>
+    <result property="customerId" column="customer_id"/>
+    <result property="customerName" column="customer_name"/>
+    <result property="planStartDate" column="plan_start_date"/>
+    <result property="planEndDate" column="plan_end_date"/>
+    <result property="contractAmount" column="contract_amount"/>
+    <result property="projDesc" column="proj_desc"/>
+    <result property="totalBudget" column="total_budget"/>
+    <result property="status" column="status"/>
+    <result property="rejectReason" column="reject_reason"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+    <result property="updateBy" column="update_by"/>
+    <result property="updateTime" column="update_time"/>
+  </resultMap>
+  <select id="selectProjInfoById" resultMap="ProjInfoResult">select * from proj_info where proj_id = #{projId} and del_flag = '0'</select>
+  <select id="selectProjInfoList" resultMap="ProjInfoResult">select * from proj_info where del_flag = '0' <if test="projName != null and projName != ''">and proj_name like concat('%',#{projName},'%')</if> <if test="status != null and status != ''">and status = #{status}</if> order by create_time desc</select>
+  <insert id="insertProjInfo" parameterType="com.ruoyi.system.domain.project.ProjInfo" useGeneratedKeys="true" keyProperty="projId">insert into proj_info(proj_no,proj_name,customer_id,customer_name,plan_start_date,plan_end_date,contract_amount,proj_desc,total_budget,status,reject_reason,create_by,create_time,update_by,update_time) values(#{projNo},#{projName},#{customerId},#{customerName},#{planStartDate},#{planEndDate},#{contractAmount},#{projDesc},#{totalBudget},#{status},#{rejectReason},#{createBy},now(),#{updateBy},now())</insert>
+  <update id="updateProjInfo">update proj_info set proj_no=#{projNo},proj_name=#{projName},customer_id=#{customerId},customer_name=#{customerName},plan_start_date=#{planStartDate},plan_end_date=#{planEndDate},contract_amount=#{contractAmount},proj_desc=#{projDesc},total_budget=#{totalBudget},status=#{status},reject_reason=#{rejectReason},update_by=#{updateBy},update_time=now() where proj_id=#{projId}</update>
+  <update id="deleteProjInfoById">update proj_info set del_flag='1' where proj_id=#{projId}</update>
+</mapper>

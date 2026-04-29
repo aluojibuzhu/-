@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ProjCustomerMapper">
+  <resultMap id="ProjCustomerResult" type="com.ruoyi.system.domain.project.ProjCustomer">
+    <id property="customerId" column="customer_id"/>
+    <result property="customerName" column="customer_name"/>
+    <result property="contactPerson" column="contact_person"/>
+    <result property="contactPhone" column="contact_phone"/>
+    <result property="address" column="address"/>
+    <result property="remark" column="remark"/>
+    <result property="status" column="status"/>
+  </resultMap>
+  <select id="selectProjCustomerById" resultMap="ProjCustomerResult">select * from proj_customer where customer_id=#{customerId} and del_flag='0'</select>
+  <select id="selectProjCustomerList" resultMap="ProjCustomerResult">select * from proj_customer where del_flag='0' <if test="customerName != null and customerName != ''">and customer_name like concat('%',#{customerName},'%')</if> order by create_time desc</select>
+  <insert id="insertProjCustomer" parameterType="com.ruoyi.system.domain.project.ProjCustomer" useGeneratedKeys="true" keyProperty="customerId">insert into proj_customer(customer_name,contact_person,contact_phone,address,remark,status,create_by,create_time,update_by,update_time) values(#{customerName},#{contactPerson},#{contactPhone},#{address},#{remark},#{status},#{createBy},now(),#{updateBy},now())</insert>
+  <update id="updateProjCustomer">update proj_customer set customer_name=#{customerName},contact_person=#{contactPerson},contact_phone=#{contactPhone},address=#{address},remark=#{remark},status=#{status},update_by=#{updateBy},update_time=now() where customer_id=#{customerId}</update>
+  <update id="deleteProjCustomerById">update proj_customer set del_flag='1' where customer_id=#{customerId}</update>
+</mapper>
+
