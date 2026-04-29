@@ -11,6 +11,5 @@
   </resultMap>
   <select id="selectByProjId" resultMap="ProjCostAllocationResult">select * from proj_cost_allocation where proj_id = #{projId} and del_flag = '0'</select>
   <insert id="insertProjCostAllocation" parameterType="com.ruoyi.system.domain.project.ProjCostAllocation">insert into proj_cost_allocation(proj_id,node_id,category_id,category_name,allocation_amount,create_by,create_time,update_by,update_time) values(#{projId},#{nodeId},#{categoryId},#{categoryName},#{allocationAmount},#{createBy},now(),#{updateBy},now())</insert>
-  <update id="deleteByProjId">update proj_cost_allocation set del_flag='1' where proj_id=#{projId}</update>
+  <delete id="deleteByProjId">delete from proj_cost_allocation where proj_id=#{projId}</delete>
 </mapper>
-

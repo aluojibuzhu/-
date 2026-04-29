@@ -12,5 +12,5 @@
   </resultMap>
   <select id="selectByProjId" resultMap="ProjWbsNodeResult">select * from proj_wbs_node where proj_id = #{projId} and del_flag = '0' order by order_num asc</select>
   <insert id="insertProjWbsNode" parameterType="com.ruoyi.system.domain.project.ProjWbsNode" useGeneratedKeys="true" keyProperty="nodeId">insert into proj_wbs_node(proj_id,node_no,node_name,plan_finish_date,node_budget,order_num,create_by,create_time,update_by,update_time) values(#{projId},#{nodeNo},#{nodeName},#{planFinishDate},#{nodeBudget},#{orderNum},#{createBy},now(),#{updateBy},now())</insert>
-  <update id="deleteByProjId">update proj_wbs_node set del_flag='1' where proj_id=#{projId}</update>
+  <delete id="deleteByProjId">delete from proj_wbs_node where proj_id=#{projId}</delete>
 </mapper>

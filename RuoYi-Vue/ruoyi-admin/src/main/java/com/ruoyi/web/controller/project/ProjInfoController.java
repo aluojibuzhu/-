@@ -45,7 +45,8 @@ public class ProjInfoController extends BaseController
     @PostMapping("/draft")
     public AjaxResult saveDraft(@RequestBody ProjInfoFormVO form)
     {
-        return toAjax(projInfoService.saveDraft(form, getUsername()));
+        projInfoService.saveDraft(form, getUsername());
+        return success(form.getProjInfo());
     }
 
     @PreAuthorize("@ss.hasPermi('project:projInfo:edit')")
@@ -76,4 +77,3 @@ public class ProjInfoController extends BaseController
         return toAjax(projInfoService.deleteProjInfoById(projId));
     }
 }
-

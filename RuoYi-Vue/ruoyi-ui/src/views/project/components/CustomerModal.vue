@@ -20,9 +20,16 @@ export default {
   methods: {
     show() { this.form = {}; this.open = true },
     submit() {
-      addCustomer(this.form).then(() => { this.$message.success('已创建'); this.open = false; this.$emit('done') })
+      if (!this.form.customerName) {
+        this.$message.warning('客户名称不能为空')
+        return
+      }
+      addCustomer(this.form).then(res => {
+        this.$message.success('已创建')
+        this.open = false
+        this.$emit('done', res.data)
+      }).catch(() => this.$message.error('客户创建失败'))
     }
   }
 }
 </script>
-

@@ -43,7 +43,8 @@ public class ProjCustomerController extends BaseController
     {
         customer.setCreateBy(getUsername());
         customer.setUpdateBy(getUsername());
-        return toAjax(customerService.insertProjCustomer(customer));
+        customerService.insertProjCustomer(customer);
+        return success(customer);
     }
 
     @PreAuthorize("@ss.hasPermi('project:customer:edit')")
@@ -58,4 +59,3 @@ public class ProjCustomerController extends BaseController
     @DeleteMapping("/{customerId}")
     public AjaxResult remove(@PathVariable Long customerId) { return toAjax(customerService.deleteProjCustomerById(customerId)); }
 }
-

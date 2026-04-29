@@ -30,6 +30,21 @@ CREATE TABLE `sys_cost_category` (
   PRIMARY KEY (`category_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成本科目配置表';
 
+INSERT INTO `sys_cost_category` (`category_id`, `parent_id`, `category_name`, `category_level`, `order_num`) VALUES
+(1, 0, '人工费', 1, 1),
+(2, 0, '材料费', 1, 2),
+(3, 0, '设备费', 1, 3),
+(4, 0, '分包费', 1, 4),
+(5, 0, '现场杂费', 1, 5),
+(6, 0, '管理费', 1, 6),
+(7, 0, '其他', 1, 7),
+(101, 1, '项目管理人工', 2, 11),
+(102, 1, '设计人员人工', 2, 12),
+(103, 1, '施工人员人工', 2, 13),
+(201, 2, '主材', 2, 21),
+(202, 2, '辅材', 2, 22),
+(203, 2, '周转材料', 2, 23);
+
 CREATE TABLE `proj_info` (
   `proj_id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '项目ID',
   `proj_no` varchar(30) NOT NULL COMMENT '项目编号（PRJ-YYYYMMDD-序号）',
@@ -92,3 +107,28 @@ CREATE TABLE `proj_no_sequence` (
 CREATE TABLE `proj_node_no_sequence` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT PRIMARY KEY
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='节点编号序列表';
+
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`)
+VALUES ('项目管理', 0, 5, 'project', NULL, '', 1, 0, 'M', '0', '0', '', 'build', 'admin', NOW(), '项目管理目录');
+SET @project_menu_id = LAST_INSERT_ID();
+
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`)
+VALUES ('项目列表', @project_menu_id, 1, 'projInfo', 'project/projInfo/index', '', 1, 0, 'C', '0', '0', 'project:projInfo:list', 'list', 'admin', NOW(), '项目立项列表');
+SET @proj_info_menu_id = LAST_INSERT_ID();
+
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`) VALUES
+('新建项目', @project_menu_id, 2, 'projInfo/form', 'project/projInfo/form', '', 1, 0, 'C', '1', '0', 'project:projInfo:add', 'form', 'admin', NOW(), '新建项目'),
+('项目详情', @project_menu_id, 3, 'projInfo/detail/:id(\\d+)', 'project/projInfo/detail', '', 1, 0, 'C', '1', '0', 'project:projInfo:query', 'eye', 'admin', NOW(), '项目详情');
+
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`) VALUES
+('项目查询', @proj_info_menu_id, 1, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:query', '#', 'admin', NOW(), ''),
+('项目新增', @proj_info_menu_id, 2, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:add', '#', 'admin', NOW(), ''),
+('项目修改', @proj_info_menu_id, 3, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:edit', '#', 'admin', NOW(), ''),
+('项目删除', @proj_info_menu_id, 4, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:remove', '#', 'admin', NOW(), ''),
+('项目审批', @proj_info_menu_id, 5, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:approve', '#', 'admin', NOW(), ''),
+('客户查询', @proj_info_menu_id, 6, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:list', '#', 'admin', NOW(), ''),
+('客户详情', @proj_info_menu_id, 7, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:query', '#', 'admin', NOW(), ''),
+('客户新增', @proj_info_menu_id, 8, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:add', '#', 'admin', NOW(), ''),
+('客户修改', @proj_info_menu_id, 9, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:edit', '#', 'admin', NOW(), ''),
+('客户删除', @proj_info_menu_id, 10, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:remove', '#', 'admin', NOW(), ''),
+('成本科目查询', @proj_info_menu_id, 11, '#', '', '', 1, 0, 'F', '0', '0', 'project:costCategory:list', '#', 'admin', NOW(), '');

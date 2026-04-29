@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper.project;
 
 import java.util.List;
+import com.ruoyi.system.domain.project.ProjectSequence;
 import com.ruoyi.system.domain.project.ProjInfo;
 
 public interface ProjInfoMapper
@@ -10,4 +11,5 @@ public interface ProjInfoMapper
     int insertProjInfo(ProjInfo projInfo);
     int updateProjInfo(ProjInfo projInfo);
     int deleteProjInfoById(Long projId);
+    int insertProjNoSequence(ProjectSequence sequence);
 }
