@@ -70,23 +70,16 @@
 
 <script>
 import { listProjInfos, submitForApproval, delProjInfo } from '@/api/project/projInfo'
-
-const STATUS_OPTIONS = [
-  { value: '0', label: '草稿' },
-  { value: '1', label: '审批中' },
-  { value: '2', label: '已立项' },
-  { value: '3', label: '已驳回' },
-  { value: '4', label: '进行中' },
-  { value: '5', label: '已完工' }
-]
+import { PROJECT_STATUS_OPTIONS, canEditProject, formatMoney, projectStatusLabel, projectStatusTagType } from '@/utils/project'
 
 export default {
+  name: 'ProjInfoIndex',
   data() {
     return {
       loading: false,
       list: [],
       total: 0,
-      statusOptions: STATUS_OPTIONS,
+      statusOptions: PROJECT_STATUS_OPTIONS,
       queryParams: { pageNum: 1, pageSize: 10, projName: undefined, status: undefined }
     }
   },
@@ -114,7 +107,7 @@ export default {
       this.handleQuery()
     },
     canEdit(row) {
-      return row.status === '0' || row.status === '3'
+      return canEditProject(row.status)
     },
     submit(row) {
       submitForApproval(row.projId).then(() => {
@@ -129,15 +122,13 @@ export default {
       }).catch(() => {})
     },
     statusLabel(status) {
-      const item = STATUS_OPTIONS.find(i => i.value === status)
-      return item ? item.label : status
+      return projectStatusLabel(status)
     },
     statusTag(status) {
-      return ({ '0': 'info', '1': 'warning', '2': 'success', '3': 'danger', '4': '', '5': 'success' })[status] || 'info'
+      return projectStatusTagType(status)
     },
     formatMoney(value) {
-      const amount = Number(value || 0)
-      return amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return formatMoney(value)
     }
   }
 }

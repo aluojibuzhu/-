@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <el-row :gutter="12" class="summary-row">
+    <el-row :gutter="16" class="summary-row">
       <el-col :xs="24" :sm="8">
         <div class="summary-item">
           <span>总预算</span>
@@ -38,69 +38,91 @@
       </el-col>
     </el-row>
 
-    <div class="detail-panel">
-      <div class="section-head">
-        <span class="section-title">基本信息</span>
+    <div class="detail-card">
+      <div class="detail-card-title">基本信息</div>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">项目编号</span><span class="detail-value">{{ form.projInfo.projNo }}</span></div>
+        <div class="detail-item"><span class="detail-label">项目名称</span><span class="detail-value">{{ form.projInfo.projName }}</span></div>
       </div>
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="项目编号">{{ form.projInfo.projNo }}</el-descriptions-item>
-        <el-descriptions-item label="项目名称">{{ form.projInfo.projName }}</el-descriptions-item>
-        <el-descriptions-item label="客户">{{ form.projInfo.customerName }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ statusLabel(form.projInfo.status) }}</el-descriptions-item>
-        <el-descriptions-item label="预计开工">{{ form.projInfo.planStartDate || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="预计竣工">{{ form.projInfo.planEndDate || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="项目简介" :span="2">{{ form.projInfo.projDesc || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="驳回原因" :span="2">{{ form.projInfo.rejectReason || '-' }}</el-descriptions-item>
-      </el-descriptions>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">客户名称</span><span class="detail-value">{{ form.projInfo.customerName || '-' }}</span></div>
+        <div class="detail-item"><span class="detail-label">合同金额</span><span class="detail-value">{{ formatMoney(form.projInfo.contractAmount) }}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">预计开工</span><span class="detail-value">{{ form.projInfo.planStartDate || '-' }}</span></div>
+        <div class="detail-item"><span class="detail-label">预计竣工</span><span class="detail-value">{{ form.projInfo.planEndDate || '-' }}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item detail-item-full"><span class="detail-label">项目简介</span><span class="detail-value">{{ form.projInfo.projDesc || '-' }}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item detail-item-full"><span class="detail-label">驳回原因</span><span class="detail-value">{{ form.projInfo.rejectReason || '-' }}</span></div>
+      </div>
     </div>
 
-    <div class="detail-panel">
-      <div class="section-head">
-        <span class="section-title">WBS节点</span>
-        <span class="section-subtitle">节点预算合计 {{ formatMoney(nodeTotal) }}</span>
+    <div class="detail-card">
+      <div class="table-card-head">
+        <div class="detail-card-title">WBS节点-成本分配</div>
+        <span>节点预算合计 {{ formatMoney(nodeTotal) }}</span>
       </div>
-      <el-table :data="form.wbsNodes" border stripe>
-        <el-table-column type="index" label="序号" width="70" align="center" />
-        <el-table-column prop="nodeNo" label="节点编号" width="120" align="center" />
-        <el-table-column prop="nodeName" label="节点名称" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="planFinishDate" label="预计完成" width="130" align="center" />
-        <el-table-column label="预算" width="160" align="right">
-          <template slot-scope="scope">{{ formatMoney(scope.row.nodeBudget) }}</template>
+      <el-table :data="matrixRows" border stripe>
+        <el-table-column type="index" label="序号" width="64" align="center" />
+        <el-table-column prop="nodeNo" label="节点编号" width="112" align="center" />
+        <el-table-column prop="nodeName" label="节点名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="planFinishDate" label="预计完成" width="120" align="center" />
+        <el-table-column v-for="category in costColumns" :key="category.categoryId" :label="category.categoryName" width="130" align="right">
+          <template slot-scope="scope">{{ formatMoney(scope.row.allocations[category.categoryId]) }}</template>
+        </el-table-column>
+        <el-table-column label="节点预算" width="140" align="right">
+          <template slot-scope="scope"><strong>{{ formatMoney(scope.row.nodeBudget) }}</strong></template>
         </el-table-column>
       </el-table>
+      <el-empty v-if="!matrixRows.length" description="暂无WBS节点" />
     </div>
   </div>
 </template>
 
 <script>
+import { listCostCategories } from '@/api/project/costCategory'
 import { getProjForm, approve, reject } from '@/api/project/projInfo'
-
-const STATUS_OPTIONS = [
-  { value: '0', label: '草稿' },
-  { value: '1', label: '审批中' },
-  { value: '2', label: '已立项' },
-  { value: '3', label: '已驳回' },
-  { value: '4', label: '进行中' },
-  { value: '5', label: '已完工' }
-]
+import { formatMoney, projectStatusLabel, projectStatusTagType } from '@/utils/project'
 
 export default {
+  name: 'ProjInfoDetail',
   data() {
-    return { submitting: false, form: { projInfo: null, wbsNodes: [] } }
+    return { submitting: false, costCategories: [], form: { projInfo: null, wbsNodes: [], allocations: [] } }
   },
   computed: {
+    costColumns() {
+      return this.costCategories.filter(item => Number(item.parentId || 0) === 0)
+    },
+    matrixRows() {
+      return this.form.wbsNodes.map(node => {
+        const allocations = {}
+        this.costColumns.forEach(category => {
+          const found = this.form.allocations.find(item => String(item.nodeId) === String(node.nodeId) && String(item.categoryId) === String(category.categoryId))
+          allocations[category.categoryId] = found ? Number(found.allocationAmount || 0) : 0
+        })
+        return Object.assign({}, node, { allocations })
+      })
+    },
     nodeTotal() {
-      return this.form.wbsNodes.reduce((sum, item) => sum + Number(item.nodeBudget || 0), 0)
+      return this.matrixRows.reduce((sum, item) => sum + Number(item.nodeBudget || 0), 0)
     }
   },
   created() {
-    this.load()
+    Promise.all([this.loadCostCategories()]).then(() => this.load())
   },
   methods: {
     load() {
-      getProjForm(this.$route.params.id).then(r => {
+      return getProjForm(this.$route.params.id).then(r => {
         this.form = r.data || this.form
       }).catch(() => this.$message.error('项目详情加载失败'))
+    },
+    loadCostCategories() {
+      return listCostCategories().then(res => {
+        this.costCategories = res.data || []
+      }).catch(() => this.$message.error('成本科目加载失败'))
     },
     approveIt() {
       this.submitting = true
@@ -128,15 +150,13 @@ export default {
       })
     },
     statusLabel(status) {
-      const item = STATUS_OPTIONS.find(i => i.value === status)
-      return item ? item.label : status
+      return projectStatusLabel(status)
     },
     statusTag(status) {
-      return ({ '0': 'info', '1': 'warning', '2': 'success', '3': 'danger', '4': '', '5': 'success' })[status] || 'info'
+      return projectStatusTagType(status)
     },
     formatMoney(value) {
-      const amount = Number(value || 0)
-      return amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      return formatMoney(value)
     }
   }
 }
@@ -149,7 +169,7 @@ export default {
 }
 
 .detail-heading,
-.detail-panel,
+.detail-card,
 .summary-item {
   background: #fff;
   border: 1px solid #e6ebf2;
@@ -161,7 +181,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .title-row {
@@ -179,7 +199,7 @@ export default {
 
 .detail-heading p {
   margin: 8px 0 0;
-  color: #7a8797;
+  color: #8c98a8;
 }
 
 .heading-actions {
@@ -188,19 +208,19 @@ export default {
 }
 
 .summary-row {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .summary-item {
-  padding: 16px 18px;
   min-height: 86px;
+  padding: 16px 18px;
 }
 
 .summary-item span {
   display: block;
   margin-bottom: 10px;
   font-size: 13px;
-  color: #7a8797;
+  color: #8c98a8;
 }
 
 .summary-item strong {
@@ -209,34 +229,81 @@ export default {
   font-weight: 600;
 }
 
-.detail-panel {
+.detail-card {
   padding: 18px 20px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.section-title {
+.detail-card-title {
+  position: relative;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
   font-size: 16px;
   font-weight: 600;
   color: #1f2d3d;
 }
 
-.section-subtitle {
+.detail-card-title::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 36px;
+  height: 3px;
+  content: '';
+  background: #1890ff;
+  border-radius: 2px;
+}
+
+.detail-row {
+  display: flex;
+  border-top: 1px solid #eef2f6;
+}
+
+.detail-row:first-of-type {
+  border-top: 0;
+}
+
+.detail-item {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  flex: 1;
+  min-height: 46px;
+}
+
+.detail-item-full {
+  flex-basis: 100%;
+}
+
+.detail-label {
+  padding: 12px;
+  color: #606266;
+  background: #f8f8f9;
+}
+
+.detail-value {
+  padding: 12px;
+  color: #1f2d3d;
+}
+
+.table-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   color: #8c98a8;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {
   .detail-heading,
-  .heading-actions {
+  .heading-actions,
+  .detail-row,
+  .table-card-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .detail-item {
+    width: 100%;
   }
 }
 </style>

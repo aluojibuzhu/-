@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,16 +77,23 @@ public class ProjInfoServiceImpl implements IProjInfoService
         allocationMapper.deleteByProjId(projId);
 
         List<ProjWbsNode> nodes = form.getWbsNodes() == null ? new ArrayList<>() : form.getWbsNodes();
+        validateNodes(nodes);
         BigDecimal total = BigDecimal.ZERO;
+        Map<Long, Long> nodeIdMapping = new HashMap<>();
         for (int i = 0; i < nodes.size(); i++)
         {
             ProjWbsNode node = nodes.get(i);
+            Long requestNodeId = node.getNodeId();
             node.setProjId(projId);
             node.setNodeNo(generateNodeNo(i + 1));
             node.setOrderNum(i + 1);
             node.setCreateBy(username);
             node.setUpdateBy(username);
             wbsNodeMapper.insertProjWbsNode(node);
+            if (requestNodeId != null)
+            {
+                nodeIdMapping.put(requestNodeId, node.getNodeId());
+            }
             total = total.add(node.getNodeBudget() == null ? BigDecimal.ZERO : node.getNodeBudget());
         }
 
@@ -92,6 +101,10 @@ public class ProjInfoServiceImpl implements IProjInfoService
         for (ProjCostAllocation item : allocations)
         {
             item.setProjId(projId);
+            if (item.getNodeId() != null && nodeIdMapping.containsKey(item.getNodeId()))
+            {
+                item.setNodeId(nodeIdMapping.get(item.getNodeId()));
+            }
             item.setCreateBy(username);
             item.setUpdateBy(username);
             allocationMapper.insertProjCostAllocation(item);
@@ -169,10 +182,37 @@ public class ProjInfoServiceImpl implements IProjInfoService
         {
             throw new ServiceException("关联客户不能为空");
         }
+        if (info.getContractAmount() == null || info.getContractAmount().compareTo(BigDecimal.ZERO) <= 0)
+        {
+            throw new ServiceException("预计合同金额必须大于0");
+        }
         if (info.getPlanStartDate() != null && info.getPlanEndDate() != null
                 && info.getPlanEndDate().before(info.getPlanStartDate()))
         {
             throw new ServiceException("预计竣工日期必须晚于预计开工日期");
+        }
+    }
+
+    private void validateNodes(List<ProjWbsNode> nodes)
+    {
+        if (nodes.isEmpty())
+        {
+            throw new ServiceException("请至少维护一个WBS节点");
+        }
+        for (ProjWbsNode node : nodes)
+        {
+            if (StringUtils.isEmpty(node.getNodeName()))
+            {
+                throw new ServiceException("WBS节点名称不能为空");
+            }
+            if (node.getPlanFinishDate() == null)
+            {
+                throw new ServiceException("WBS节点预计完成日期不能为空");
+            }
+            if (node.getNodeBudget() == null || node.getNodeBudget().compareTo(BigDecimal.ZERO) < 0)
+            {
+                throw new ServiceException("WBS节点预算不能小于0");
+            }
         }
     }
 }

@@ -16,6 +16,7 @@
 <script>
 import { addCustomer } from '@/api/project/projCustomer'
 export default {
+  name: 'CustomerModal',
   data() { return { open: false, form: {} } },
   methods: {
     show() { this.form = {}; this.open = true },
