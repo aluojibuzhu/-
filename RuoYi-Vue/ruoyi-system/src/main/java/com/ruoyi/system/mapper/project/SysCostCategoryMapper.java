@@ -6,5 +6,14 @@ import com.ruoyi.system.domain.project.SysCostCategory;
 public interface SysCostCategoryMapper
 {
     List<SysCostCategory> selectSysCostCategoryList(SysCostCategory category);
-}
 
+    SysCostCategory selectSysCostCategoryById(Long categoryId);
+
+    int insertSysCostCategory(SysCostCategory category);
+
+    int updateSysCostCategory(SysCostCategory category);
+
+    int deleteSysCostCategoryById(Long categoryId);
+
+    int hasChildByCategoryId(Long categoryId);
+}

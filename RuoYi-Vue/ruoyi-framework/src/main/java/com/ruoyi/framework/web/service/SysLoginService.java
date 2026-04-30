@@ -110,7 +110,7 @@ public class SysLoginService
     public void validateCaptcha(String username, String code, String uuid)
     {
         boolean captchaEnabled = configService.selectCaptchaEnabled();
-        if (captchaEnabled)
+        if (captchaEnabled && StringUtils.isNotEmpty(code) && StringUtils.isNotEmpty(uuid))
         {
             String verifyKey = CacheConstants.CAPTCHA_CODE_KEY + StringUtils.nvl(uuid, "");
             String captcha = redisCache.getCacheObject(verifyKey);

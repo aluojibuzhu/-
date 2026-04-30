@@ -120,6 +120,10 @@ INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `componen
 ('新建项目', @project_menu_id, 2, 'projInfo/form', 'project/projInfo/form', '', 1, 0, 'C', '1', '0', 'project:projInfo:add', 'form', 'admin', NOW(), '新建项目'),
 ('项目详情', @project_menu_id, 3, 'projInfo/detail/:id(\\d+)', 'project/projInfo/detail', '', 1, 0, 'C', '1', '0', 'project:projInfo:query', 'eye', 'admin', NOW(), '项目详情');
 
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`)
+VALUES ('基础配置', @project_menu_id, 4, 'basicConfig', 'project/costCategory/index', '', 1, 0, 'C', '0', '0', 'project:costCategory:list', 'tree-table', 'admin', NOW(), '基础配置');
+SET @cost_category_menu_id = LAST_INSERT_ID();
+
 INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`) VALUES
 ('项目查询', @proj_info_menu_id, 1, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:query', '#', 'admin', NOW(), ''),
 ('项目新增', @proj_info_menu_id, 2, '#', '', '', 1, 0, 'F', '0', '0', 'project:projInfo:add', '#', 'admin', NOW(), ''),
@@ -130,5 +134,10 @@ INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `componen
 ('客户详情', @proj_info_menu_id, 7, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:query', '#', 'admin', NOW(), ''),
 ('客户新增', @proj_info_menu_id, 8, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:add', '#', 'admin', NOW(), ''),
 ('客户修改', @proj_info_menu_id, 9, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:edit', '#', 'admin', NOW(), ''),
-('客户删除', @proj_info_menu_id, 10, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:remove', '#', 'admin', NOW(), ''),
-('成本科目查询', @proj_info_menu_id, 11, '#', '', '', 1, 0, 'F', '0', '0', 'project:costCategory:list', '#', 'admin', NOW(), '');
+('客户删除', @proj_info_menu_id, 10, '#', '', '', 1, 0, 'F', '0', '0', 'project:customer:remove', '#', 'admin', NOW(), '');
+
+INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`) VALUES
+('成本科目查询', @cost_category_menu_id, 1, '#', '', '', 1, 0, 'F', '0', '0', 'project:costCategory:query', '#', 'admin', NOW(), ''),
+('成本科目新增', @cost_category_menu_id, 2, '#', '', '', 1, 0, 'F', '0', '0', 'project:costCategory:add', '#', 'admin', NOW(), ''),
+('成本科目修改', @cost_category_menu_id, 3, '#', '', '', 1, 0, 'F', '0', '0', 'project:costCategory:edit', '#', 'admin', NOW(), ''),
+('成本科目删除', @cost_category_menu_id, 4, '#', '', '', 1, 0, 'F', '0', '0', 'project:costCategory:remove', '#', 'admin', NOW(), '');

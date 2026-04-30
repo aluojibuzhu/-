@@ -34,8 +34,8 @@
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column prop="projNo" label="项目编号" width="170" />
-        <el-table-column label="项目名称" min-width="220" show-overflow-tooltip>
+        <el-table-column prop="projNo" label="项目编号" width="170" align="center" />
+        <el-table-column label="项目名称" min-width="220" align="center" show-overflow-tooltip>
           <template slot-scope="scope">
             <div class="project-name">
               <span>{{ scope.row.projName }}</span>
@@ -45,7 +45,7 @@
         </el-table-column>
         <el-table-column prop="planStartDate" label="预计开工" width="120" align="center" />
         <el-table-column prop="planEndDate" label="预计竣工" width="120" align="center" />
-        <el-table-column label="总预算" width="140" align="right">
+        <el-table-column label="总预算" width="140" align="center">
           <template slot-scope="scope">{{ formatMoney(scope.row.totalBudget) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="110" align="center">

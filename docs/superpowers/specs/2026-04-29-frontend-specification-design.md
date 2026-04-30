@@ -121,12 +121,13 @@ sideTheme: 'theme-light',  // 浅色侧边栏
 
 | 组件 | 用途 | 定制说明 |
 |------|------|----------|
-| `el-table` | 所有数据列表 | `border stripe`，表头背景 `#f8f8f9` |
+| `el-table` | 所有数据列表 | `border stripe`，表头背景 `#f8f8f9`，所有列统一 `align="center"` |
 | `el-form` | 所有表单 | `label-width="100px"`，`size="small"` |
 | `el-input` | 文本输入 | `clearable`，超 50 字用 `type="textarea"` |
 | `el-select` | 下拉选择 | `clearable filterable`（选项 > 20 时） |
 | `el-date-picker` | 日期选择 | `value-format="yyyy-MM-dd"` |
-| `el-input-number` | 金额/数字 | `:min="0" :precision="2"` 金额专用 |
+| `el-input-number` | 金额/数字（表单区域） | `:min="0" :precision="2" controls-position="right"` 金额专用 |
+| `el-input` (type=number) | 金额/数字（表格内嵌） | 表格单元格空间有限，不使用 `el-input-number`，改用 `<el-input>` 配合数字格式化，避免步进按钮挤占空间 |
 | `el-tag` | 状态标签 | 统一 `size="small"` |
 | `el-button` | 操作按钮 | 表格内用 `type="text"`，主要操作用 `type="primary"` |
 | `el-pagination` | 分页 | 封装为 `<pagination>` 组件统一使用 |

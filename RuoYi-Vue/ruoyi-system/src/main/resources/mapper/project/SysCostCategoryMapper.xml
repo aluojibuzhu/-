@@ -8,6 +8,35 @@
     <result property="categoryLevel" column="category_level"/>
     <result property="orderNum" column="order_num"/>
     <result property="status" column="status"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+    <result property="updateBy" column="update_by"/>
+    <result property="updateTime" column="update_time"/>
   </resultMap>
-  <select id="selectSysCostCategoryList" resultMap="SysCostCategoryResult">select * from sys_cost_category where del_flag='0' and status='0' order by order_num asc</select>
+  <select id="selectSysCostCategoryList" parameterType="com.ruoyi.system.domain.project.SysCostCategory" resultMap="SysCostCategoryResult">
+    select * from sys_cost_category
+    where del_flag='0'
+    <if test="categoryName != null and categoryName != ''">and category_name like concat('%', #{categoryName}, '%')</if>
+    <if test="status != null and status != ''">and status = #{status}</if>
+    <if test="parentId != null">and parent_id = #{parentId}</if>
+    order by order_num asc, category_id asc
+  </select>
+  <select id="selectSysCostCategoryById" resultMap="SysCostCategoryResult">
+    select * from sys_cost_category where category_id = #{categoryId} and del_flag='0'
+  </select>
+  <insert id="insertSysCostCategory" parameterType="com.ruoyi.system.domain.project.SysCostCategory" useGeneratedKeys="true" keyProperty="categoryId">
+    insert into sys_cost_category(parent_id, category_name, category_level, order_num, status, create_by, create_time, update_by, update_time)
+    values(#{parentId}, #{categoryName}, #{categoryLevel}, #{orderNum}, #{status}, #{createBy}, now(), #{updateBy}, now())
+  </insert>
+  <update id="updateSysCostCategory" parameterType="com.ruoyi.system.domain.project.SysCostCategory">
+    update sys_cost_category
+    set parent_id=#{parentId}, category_name=#{categoryName}, category_level=#{categoryLevel}, order_num=#{orderNum}, status=#{status}, update_by=#{updateBy}, update_time=now()
+    where category_id=#{categoryId}
+  </update>
+  <update id="deleteSysCostCategoryById">
+    update sys_cost_category set del_flag='1' where category_id=#{categoryId}
+  </update>
+  <select id="hasChildByCategoryId" resultType="int">
+    select count(1) from sys_cost_category where parent_id=#{categoryId} and del_flag='0'
+  </select>
 </mapper>

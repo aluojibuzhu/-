@@ -76,35 +76,38 @@
           <el-table-column prop="nodeNo" label="节点编号" width="112" align="center">
             <template slot-scope="scope">{{ scope.row.nodeNo || nextNodeNo(scope.$index) }}</template>
           </el-table-column>
-          <el-table-column label="节点名称" min-width="180">
+          <el-table-column label="节点名称" min-width="180" align="center">
             <template slot-scope="scope">
               <el-input v-model="scope.row.nodeName" clearable maxlength="30" placeholder="如：基础工程" @input="markDirty" />
             </template>
           </el-table-column>
-          <el-table-column label="预计完成" width="160">
+          <el-table-column label="预计完成" width="160" align="center">
             <template slot-scope="scope">
               <el-date-picker v-model="scope.row.planFinishDate" value-format="yyyy-MM-dd" type="date" class="table-date" @change="markDirty" />
             </template>
           </el-table-column>
-          <el-table-column v-for="category in costColumns" :key="category.categoryId" :label="category.categoryName" width="150" align="right">
+          <el-table-column v-for="category in costColumns" :key="category.categoryId" :label="category.categoryName" width="150" align="center">
             <template slot-scope="scope">
-              <el-input-number
+              <el-input
                 v-model="scope.row.allocations[category.categoryId]"
-                :min="0"
-                :precision="2"
-                controls-position="right"
-                class="table-number"
-                @change="handleAllocationChange(scope.row)"
+                type="number"
+                min="0"
+                step="0.01"
+                class="table-number amount-input"
+                @input="handleAllocationInput(scope.row)"
+                @blur="normalizeAllocation(scope.row, category.categoryId)"
               />
             </template>
           </el-table-column>
-          <el-table-column label="节点预算" width="150" align="right">
+          <el-table-column label="节点预算" width="150" align="center">
             <template slot-scope="scope">
               <span class="budget-text">{{ formatMoney(scope.row.nodeBudget) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="86" align="center" fixed="right">
+          <el-table-column label="操作" width="188" align="center" fixed="right">
             <template slot-scope="scope">
+              <el-button type="text" icon="el-icon-top" :disabled="scope.$index === 0" @click="moveNode(scope.$index, -1)">上移</el-button>
+              <el-button type="text" icon="el-icon-bottom" :disabled="scope.$index === form.wbsNodes.length - 1" @click="moveNode(scope.$index, 1)">下移</el-button>
               <el-button type="text" icon="el-icon-delete" class="danger-action" @click="removeNode(scope.$index)">删除</el-button>
             </template>
           </el-table-column>
@@ -198,7 +201,7 @@ export default {
       }).catch(() => this.$message.error('客户列表加载失败'))
     },
     loadCostCategories() {
-      return listCostCategories().then(res => {
+      return listCostCategories({ status: '0' }).then(res => {
         this.costCategories = res.data || []
       }).catch(() => this.$message.error('成本科目加载失败'))
     },
@@ -227,15 +230,34 @@ export default {
       this.form.wbsNodes.splice(index, 1)
       this.markDirty()
     },
+    moveNode(index, step) {
+      const targetIndex = index + step
+      if (targetIndex < 0 || targetIndex >= this.form.wbsNodes.length) return
+      const current = this.form.wbsNodes[index]
+      this.form.wbsNodes.splice(index, 1)
+      this.form.wbsNodes.splice(targetIndex, 0, current)
+      this.markDirty()
+    },
     nextNodeNo(index) {
       return 'ND-' + String(index + 1).padStart(3, '0')
     },
-    handleAllocationChange(row) {
+    handleAllocationInput(row) {
       row.nodeBudget = this.sumAllocations(row.allocations)
       this.markDirty()
     },
+    normalizeAllocation(row, categoryId) {
+      this.$set(row.allocations, categoryId, this.toValidAmount(row.allocations[categoryId]))
+      row.nodeBudget = this.sumAllocations(row.allocations)
+    },
     sumAllocations(allocations) {
-      return Object.keys(allocations || {}).reduce((sum, key) => sum + Number(allocations[key] || 0), 0)
+      return Object.keys(allocations || {}).reduce((sum, key) => sum + this.toValidAmount(allocations[key]), 0)
+    },
+    toValidAmount(value) {
+      const amount = Number(value || 0)
+      if (!Number.isFinite(amount) || amount < 0) {
+        return 0
+      }
+      return Number(amount.toFixed(2))
     },
     buildPayload() {
       const customer = this.customers.find(i => i.customerId === this.form.projInfo.customerId)
@@ -254,7 +276,7 @@ export default {
             nodeId: node.nodeId,
             categoryId: category.categoryId,
             categoryName: category.categoryName,
-            allocationAmount: Number(node.allocations[category.categoryId] || 0)
+            allocationAmount: this.toValidAmount(node.allocations[category.categoryId])
           })
         })
       })
@@ -279,28 +301,55 @@ export default {
       }
       return true
     },
-    save() {
-      this.$refs.form.validate(valid => {
-        if (!valid || !this.validateNodes()) return
-        this.saving = true
-        saveDraft(this.buildPayload()).then(res => {
-          this.form.projInfo = res.data || this.form.projInfo
-          this.dirty = false
-          this.$message.success('保存成功')
-          if (this.form.projInfo.projId) {
-            this.loadForm(this.form.projInfo.projId)
+    persistDraft() {
+      return new Promise((resolve, reject) => {
+        this.$refs.form.validate(valid => {
+          if (!valid || !this.validateNodes()) {
+            reject(new Error('invalid'))
+            return
           }
-        }).catch(() => this.$message.error('保存失败')).finally(() => {
-          this.saving = false
+          this.saving = true
+          saveDraft(this.buildPayload()).then(res => {
+            this.form.projInfo = res.data || this.form.projInfo
+            this.dirty = false
+            resolve(this.form.projInfo)
+          }).catch(reject).finally(() => {
+            this.saving = false
+          })
         })
       })
     },
+    save() {
+      this.persistDraft().then(() => {
+        this.$message.success('保存成功')
+        if (this.form.projInfo.projId) {
+          this.loadForm(this.form.projInfo.projId)
+        }
+      }).catch(err => {
+        if (err.message !== 'invalid') {
+          this.$message.error('保存失败')
+        }
+      })
+    },
     submit() {
-      submitForApproval(this.form.projInfo.projId).then(() => {
+      const doSubmit = () => submitForApproval(this.form.projInfo.projId).then(() => {
         this.dirty = false
         this.$message.success('已提交审批')
         this.$router.push('/project/projInfo')
       }).catch(() => this.$message.error('提交审批失败'))
+
+      if (!this.dirty) {
+        doSubmit()
+        return
+      }
+
+      this.persistDraft().then(() => {
+        doSubmit()
+      }).catch(err => {
+        if (err.message !== 'invalid') {
+          this.$message.error('提交前保存失败')
+        }
+      })
     },
     formatMoney(value) {
       return formatMoney(value)
@@ -399,6 +448,20 @@ export default {
 .table-date,
 .table-number {
   width: 100%;
+}
+
+.amount-input /deep/ input {
+  text-align: center;
+}
+
+.amount-input /deep/ input::-webkit-outer-spin-button,
+.amount-input /deep/ input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.amount-input /deep/ input[type='number'] {
+  appearance: textfield;
 }
 
 .customer-picker {

@@ -1,6 +1,6 @@
 <template>
-  <div class="app-container project-detail-page" v-if="form.projInfo">
-    <div class="detail-heading">
+  <div class="app-container project-detail-page" v-loading="loading">
+    <div class="page-heading detail-heading" v-if="form.projInfo">
       <div>
         <div class="title-row">
           <h2>{{ form.projInfo.projName }}</h2>
@@ -17,20 +17,20 @@
       </div>
     </div>
 
-    <el-row :gutter="16" class="summary-row">
-      <el-col :xs="24" :sm="8">
+    <el-row v-if="form.projInfo" :gutter="16" class="summary-row">
+      <el-col :xs="24" :sm="8" class="summary-col">
         <div class="summary-item">
           <span>总预算</span>
           <strong>{{ formatMoney(form.projInfo.totalBudget) }}</strong>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="8">
+      <el-col :xs="24" :sm="8" class="summary-col">
         <div class="summary-item">
           <span>合同金额</span>
           <strong>{{ formatMoney(form.projInfo.contractAmount) }}</strong>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="8">
+      <el-col :xs="24" :sm="8" class="summary-col">
         <div class="summary-item">
           <span>WBS节点</span>
           <strong>{{ form.wbsNodes.length }}</strong>
@@ -38,7 +38,7 @@
       </el-col>
     </el-row>
 
-    <div class="detail-card">
+    <div v-if="form.projInfo" class="detail-card">
       <div class="detail-card-title">基本信息</div>
       <div class="detail-row">
         <div class="detail-item"><span class="detail-label">项目编号</span><span class="detail-value">{{ form.projInfo.projNo }}</span></div>
@@ -60,7 +60,7 @@
       </div>
     </div>
 
-    <div class="detail-card">
+    <div v-if="form.projInfo" class="detail-card">
       <div class="table-card-head">
         <div class="detail-card-title">WBS节点-成本分配</div>
         <span>节点预算合计 {{ formatMoney(nodeTotal) }}</span>
@@ -68,12 +68,12 @@
       <el-table :data="matrixRows" border stripe>
         <el-table-column type="index" label="序号" width="64" align="center" />
         <el-table-column prop="nodeNo" label="节点编号" width="112" align="center" />
-        <el-table-column prop="nodeName" label="节点名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="nodeName" label="节点名称" min-width="180" align="center" show-overflow-tooltip />
         <el-table-column prop="planFinishDate" label="预计完成" width="120" align="center" />
-        <el-table-column v-for="category in costColumns" :key="category.categoryId" :label="category.categoryName" width="130" align="right">
+        <el-table-column v-for="category in costColumns" :key="category.categoryId" :label="category.categoryName" width="130" align="center">
           <template slot-scope="scope">{{ formatMoney(scope.row.allocations[category.categoryId]) }}</template>
         </el-table-column>
-        <el-table-column label="节点预算" width="140" align="right">
+        <el-table-column label="节点预算" width="140" align="center">
           <template slot-scope="scope"><strong>{{ formatMoney(scope.row.nodeBudget) }}</strong></template>
         </el-table-column>
       </el-table>
@@ -90,7 +90,12 @@ import { formatMoney, projectStatusLabel, projectStatusTagType } from '@/utils/p
 export default {
   name: 'ProjInfoDetail',
   data() {
-    return { submitting: false, costCategories: [], form: { projInfo: null, wbsNodes: [], allocations: [] } }
+    return {
+      loading: false,
+      submitting: false,
+      costCategories: [],
+      form: { projInfo: null, wbsNodes: [], allocations: [] }
+    }
   },
   computed: {
     costColumns() {
@@ -111,18 +116,36 @@ export default {
     }
   },
   created() {
-    Promise.all([this.loadCostCategories()]).then(() => this.load())
+    this.loadPage()
   },
   methods: {
+    loadPage() {
+      this.loading = true
+      Promise.all([this.loadCostCategories()])
+        .then(() => this.load())
+        .finally(() => {
+          this.loading = false
+        })
+    },
     load() {
-      return getProjForm(this.$route.params.id).then(r => {
-        this.form = r.data || this.form
-      }).catch(() => this.$message.error('项目详情加载失败'))
+      const projId = this.$route.params.id
+      if (!projId || projId === 'undefined') {
+        this.$message.warning('请先从项目列表选择项目详情')
+        this.$router.replace('/project/projInfo')
+        return Promise.resolve()
+      }
+      return getProjForm(projId)
+        .then(r => {
+          this.form = r.data || this.form
+        })
+        .catch(() => this.$message.error('项目详情加载失败'))
     },
     loadCostCategories() {
-      return listCostCategories().then(res => {
-        this.costCategories = res.data || []
-      }).catch(() => this.$message.error('成本科目加载失败'))
+      return listCostCategories({ status: '0' })
+        .then(res => {
+          this.costCategories = res.data || []
+        })
+        .catch(() => this.$message.error('成本科目加载失败'))
     },
     approveIt() {
       this.submitting = true
@@ -145,7 +168,11 @@ export default {
       }).then(() => {
         this.$message.success('已驳回')
         this.load()
-      }).catch(() => {}).finally(() => {
+      }).catch(error => {
+        if (error !== 'cancel' && error !== 'close') {
+          this.$message.error('驳回失败')
+        }
+      }).finally(() => {
         this.submitting = false
       })
     },
@@ -168,7 +195,6 @@ export default {
   min-height: calc(100vh - 84px);
 }
 
-.detail-heading,
 .detail-card,
 .summary-item {
   background: #fff;
@@ -180,6 +206,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 6px;
   padding: 18px 20px;
   margin-bottom: 16px;
 }
@@ -211,7 +240,14 @@ export default {
   margin-bottom: 16px;
 }
 
+.summary-col {
+  margin-bottom: 0;
+}
+
 .summary-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-height: 86px;
   padding: 16px 18px;
 }
@@ -255,7 +291,8 @@ export default {
 }
 
 .detail-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid #eef2f6;
 }
 
@@ -265,24 +302,42 @@ export default {
 
 .detail-item {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  flex: 1;
-  min-height: 46px;
+  grid-template-columns: 124px minmax(0, 1fr);
+  min-height: 48px;
 }
 
 .detail-item-full {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
 }
 
 .detail-label {
+  display: flex;
+  align-items: center;
   padding: 12px;
+  line-height: 1.6;
   color: #606266;
   background: #f8f8f9;
+  white-space: nowrap;
 }
 
 .detail-value {
+  display: flex;
+  align-items: center;
   padding: 12px;
+  line-height: 1.6;
   color: #1f2d3d;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.detail-item-full .detail-label,
+.detail-item-full .detail-value {
+  align-items: flex-start;
+}
+
+.detail-item-full .detail-value {
+  white-space: pre-wrap;
 }
 
 .table-card-head {
@@ -296,14 +351,22 @@ export default {
 @media (max-width: 768px) {
   .detail-heading,
   .heading-actions,
-  .detail-row,
   .table-card-head {
     align-items: flex-start;
     flex-direction: column;
   }
 
+  .detail-row {
+    grid-template-columns: 1fr;
+  }
+
   .detail-item {
+    grid-template-columns: 112px minmax(0, 1fr);
     width: 100%;
+  }
+
+  .summary-col {
+    margin-bottom: 12px;
   }
 }
 </style>
