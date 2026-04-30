@@ -31,6 +31,7 @@ import com.ruoyi.system.service.project.IWorkHourService;
 public class WorkHourServiceImpl implements IWorkHourService
 {
     private static final BigDecimal HALF_HOUR = new BigDecimal("0.5");
+    private static final String LABOR_CATEGORY_NAME = "人工费";
 
     @Autowired
     private WorkHourMapper workHourMapper;
@@ -162,7 +163,8 @@ public class WorkHourServiceImpl implements IWorkHourService
         {
             throw new ServiceException("请选择有效成本科目");
         }
-        if (category.getParentId() == null || category.getParentId() != 1L)
+        SysCostCategory laborCategory = categoryMapper.selectRootCategoryByName(LABOR_CATEGORY_NAME);
+        if (laborCategory == null || category.getParentId() == null || !category.getParentId().equals(laborCategory.getCategoryId()))
         {
             throw new ServiceException("请选择人工费类科目");
         }

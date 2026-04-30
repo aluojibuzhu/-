@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ReimbursementAttachmentMapper">
+  <resultMap id="ReimbursementAttachmentResult" type="com.ruoyi.system.domain.project.ReimbursementAttachment">
+    <id property="attachmentId" column="attachment_id"/>
+    <result property="reimburseId" column="reimburse_id"/>
+    <result property="fileName" column="file_name"/>
+    <result property="originalName" column="original_name"/>
+    <result property="filePath" column="file_path"/>
+    <result property="fileType" column="file_type"/>
+    <result property="fileSize" column="file_size"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+  </resultMap>
+
+  <select id="selectByReimburseId" resultMap="ReimbursementAttachmentResult">
+    select * from exp_attachment where reimburse_id = #{reimburseId} order by attachment_id asc
+  </select>
+
+  <insert id="insertReimbursementAttachment" parameterType="com.ruoyi.system.domain.project.ReimbursementAttachment" useGeneratedKeys="true" keyProperty="attachmentId">
+    insert into exp_attachment(reimburse_id, file_name, original_name, file_path, file_type, file_size, create_by, create_time)
+    values(#{reimburseId}, #{fileName}, #{originalName}, #{filePath}, #{fileType}, #{fileSize}, #{createBy}, now())
+  </insert>
+
+  <delete id="deleteByReimburseId">
+    delete from exp_attachment where reimburse_id = #{reimburseId}
+  </delete>
+</mapper>

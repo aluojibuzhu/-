@@ -195,6 +195,20 @@ export const dynamicRoutes = [
         meta: { title: '工时详情', activeMenu: '/cost/workHour' }
       }
     ]
+  },
+  {
+    path: '/cost/reimbursement/detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['cost:reimbursement:query'],
+    children: [
+      {
+        path: ':id(\\d+)',
+        component: () => import('@/views/project/reimbursement/detail'),
+        name: 'ReimbursementDetail',
+        meta: { title: '报销详情', activeMenu: '/cost/reimbursement' }
+      }
+    ]
   }
 ]
 

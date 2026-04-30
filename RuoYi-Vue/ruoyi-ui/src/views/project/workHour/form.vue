@@ -158,8 +158,10 @@ export default {
       }).catch(() => this.$message.error('项目列表加载失败'))
     },
     loadCategories() {
-      return listCostCategories({ status: '0', parentId: 1 }).then(res => {
-        this.categories = res.data || []
+      return listCostCategories({ status: '0' }).then(res => {
+        const rows = res.data || []
+        const labor = rows.find(item => item.parentId === 0 && item.categoryName === '人工费')
+        this.categories = labor ? rows.filter(item => item.parentId === labor.categoryId) : []
       }).catch(() => this.$message.error('人工费科目加载失败'))
     },
     loadForm(id) {

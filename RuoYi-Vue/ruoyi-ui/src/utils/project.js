@@ -50,3 +50,17 @@ export function formatHours(value) {
   const amount = Number(value || 0)
   return amount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
+
+export const REIMBURSEMENT_STATUS_OPTIONS = WORK_HOUR_STATUS_OPTIONS
+
+export function reimbursementStatusLabel(status) {
+  return workHourStatusLabel(status)
+}
+
+export function reimbursementStatusTagType(status) {
+  return workHourStatusTagType(status)
+}
+
+export function canEditReimbursement(status) {
+  return status === '0' || status === '3'
+}

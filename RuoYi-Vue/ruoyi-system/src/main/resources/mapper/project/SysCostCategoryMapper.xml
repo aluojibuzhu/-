@@ -25,6 +25,11 @@
   <select id="selectSysCostCategoryById" resultMap="SysCostCategoryResult">
     select * from sys_cost_category where category_id = #{categoryId} and del_flag='0'
   </select>
+  <select id="selectRootCategoryByName" resultMap="SysCostCategoryResult">
+    select * from sys_cost_category
+    where parent_id = 0 and category_level = 1 and category_name = #{categoryName} and del_flag='0'
+    limit 1
+  </select>
   <insert id="insertSysCostCategory" parameterType="com.ruoyi.system.domain.project.SysCostCategory" useGeneratedKeys="true" keyProperty="categoryId">
     insert into sys_cost_category(parent_id, category_name, category_level, order_num, status, unit_price, create_by, create_time, update_by, update_time)
     values(#{parentId}, #{categoryName}, #{categoryLevel}, #{orderNum}, #{status}, #{unitPrice}, #{createBy}, now(), #{updateBy}, now())

@@ -9,6 +9,8 @@ public interface SysCostCategoryMapper
 
     SysCostCategory selectSysCostCategoryById(Long categoryId);
 
+    SysCostCategory selectRootCategoryByName(String categoryName);
+
     int insertSysCostCategory(SysCostCategory category);
 
     int updateSysCostCategory(SysCostCategory category);

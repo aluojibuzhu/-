@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ReimbursementMapper">
+  <resultMap id="ReimbursementResult" type="com.ruoyi.system.domain.project.Reimbursement">
+    <id property="reimburseId" column="reimburse_id"/>
+    <result property="reimburseNo" column="reimburse_no"/>
+    <result property="projId" column="proj_id"/>
+    <result property="projName" column="proj_name"/>
+    <result property="nodeId" column="node_id"/>
+    <result property="nodeName" column="node_name"/>
+    <result property="categoryId" column="category_id"/>
+    <result property="categoryName" column="category_name"/>
+    <result property="expenseType" column="expense_type"/>
+    <result property="expenseDate" column="expense_date"/>
+    <result property="amount" column="amount"/>
+    <result property="expenseDesc" column="expense_desc"/>
+    <result property="invoiceCount" column="invoice_count"/>
+    <result property="status" column="status"/>
+    <result property="submitTime" column="submit_time"/>
+    <result property="approveBy" column="approve_by"/>
+    <result property="approveTime" column="approve_time"/>
+    <result property="rejectReason" column="reject_reason"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+    <result property="updateBy" column="update_by"/>
+    <result property="updateTime" column="update_time"/>
+    <result property="remark" column="remark"/>
+  </resultMap>
+
+  <select id="selectReimbursementList" parameterType="com.ruoyi.system.domain.project.Reimbursement" resultMap="ReimbursementResult">
+    select * from exp_reimbursement
+    where del_flag = '0'
+    <if test="reimburseNo != null and reimburseNo != ''">and reimburse_no like concat('%', #{reimburseNo}, '%')</if>
+    <if test="projId != null">and proj_id = #{projId}</if>
+    <if test="nodeId != null">and node_id = #{nodeId}</if>
+    <if test="categoryId != null">and category_id = #{categoryId}</if>
+    <if test="expenseType != null and expenseType != ''">and expense_type = #{expenseType}</if>
+    <if test="status != null and status != ''">and status = #{status}</if>
+    <if test="beginExpenseDate != null">and expense_date &gt;= #{beginExpenseDate}</if>
+    <if test="endExpenseDate != null">and expense_date &lt;= #{endExpenseDate}</if>
+    order by create_time desc, reimburse_id desc
+  </select>
+
+  <select id="selectReimbursementById" resultMap="ReimbursementResult">
+    select * from exp_reimbursement where reimburse_id = #{reimburseId} and del_flag = '0'
+  </select>
+
+  <insert id="insertReimbursement" parameterType="com.ruoyi.system.domain.project.Reimbursement" useGeneratedKeys="true" keyProperty="reimburseId">
+    insert into exp_reimbursement(reimburse_no, proj_id, proj_name, node_id, node_name, category_id, category_name, expense_type, expense_date, amount, expense_desc, invoice_count, status, submit_time, approve_by, approve_time, reject_reason, create_by, create_time, update_by, update_time, remark)
+    values(#{reimburseNo}, #{projId}, #{projName}, #{nodeId}, #{nodeName}, #{categoryId}, #{categoryName}, #{expenseType}, #{expenseDate}, #{amount}, #{expenseDesc}, #{invoiceCount}, #{status}, #{submitTime}, #{approveBy}, #{approveTime}, #{rejectReason}, #{createBy}, now(), #{updateBy}, now(), #{remark})
+  </insert>
+
+  <update id="updateReimbursement" parameterType="com.ruoyi.system.domain.project.Reimbursement">
+    update exp_reimbursement
+    set reimburse_no=#{reimburseNo}, proj_id=#{projId}, proj_name=#{projName}, node_id=#{nodeId}, node_name=#{nodeName}, category_id=#{categoryId}, category_name=#{categoryName}, expense_type=#{expenseType}, expense_date=#{expenseDate}, amount=#{amount}, expense_desc=#{expenseDesc}, invoice_count=#{invoiceCount}, status=#{status}, submit_time=#{submitTime}, approve_by=#{approveBy}, approve_time=#{approveTime}, reject_reason=#{rejectReason}, update_by=#{updateBy}, update_time=now(), remark=#{remark}
+    where reimburse_id=#{reimburseId}
+  </update>
+
+  <update id="deleteReimbursementById">
+    update exp_reimbursement set del_flag = '1' where reimburse_id = #{reimburseId}
+  </update>
+
+  <insert id="insertReimbursementSequence" parameterType="com.ruoyi.system.domain.project.ReimbursementSequence" useGeneratedKeys="true" keyProperty="id">
+    insert into exp_no_sequence values(null)
+  </insert>
+</mapper>

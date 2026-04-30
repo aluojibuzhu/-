@@ -45,7 +45,7 @@
         :default-expand-all="isExpandAll"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       >
-        <el-table-column prop="categoryName" label="科目名称" min-width="260" header-align="center" align="left" show-overflow-tooltip>
+        <el-table-column prop="categoryName" label="科目名称" min-width="260" header-align="center" align="center" show-overflow-tooltip>
           <template slot-scope="scope">
             <span class="category-name-cell">{{ scope.row.categoryName }}</span>
           </template>
