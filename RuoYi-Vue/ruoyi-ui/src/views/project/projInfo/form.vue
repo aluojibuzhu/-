@@ -34,7 +34,16 @@
             <el-col :xs="24" :sm="12" :lg="8">
               <el-form-item label="关联客户" prop="customerId">
                 <div class="customer-picker">
-                  <el-select v-model="form.projInfo.customerId" filterable clearable placeholder="请选择客户" @change="markDirty">
+                  <el-select
+                    v-model="form.projInfo.customerId"
+                    filterable
+                    remote
+                    clearable
+                    :remote-method="remoteCustomerSearch"
+                    :loading="customerLoading"
+                    placeholder="请输入客户名称搜索"
+                    @change="handleCustomerChange"
+                  >
                     <el-option v-for="c in customers" :key="c.customerId" :label="c.customerName" :value="c.customerId" />
                   </el-select>
                   <el-button icon="el-icon-plus" @click="$refs.customer.show()">新建</el-button>
@@ -150,6 +159,7 @@ export default {
     return {
       saving: false,
       dirty: false,
+      customerLoading: false,
       tempNodeSeq: 0,
       customers: [],
       costCategories: [],
@@ -190,15 +200,22 @@ export default {
       return getProjForm(id).then(res => {
         const data = res.data || { projInfo: {}, wbsNodes: [], allocations: [] }
         this.form.projInfo = data.projInfo || {}
+        this.mergeSelectedCustomer({
+          customerId: this.form.projInfo.customerId,
+          customerName: this.form.projInfo.customerName
+        })
         this.form.allocations = data.allocations || []
         this.form.wbsNodes = (data.wbsNodes || []).map(node => this.decorateNode(node))
         this.dirty = false
       }).catch(() => this.$message.error('项目详情加载失败'))
     },
-    loadCustomers() {
-      return listCustomers({ pageNum: 1, pageSize: 500 }).then(r => {
+    loadCustomers(customerName) {
+      this.customerLoading = true
+      return listCustomers({ pageNum: 1, pageSize: 20, customerName }).then(r => {
         this.customers = r.rows || []
-      }).catch(() => this.$message.error('客户列表加载失败'))
+      }).catch(() => this.$message.error('客户列表加载失败')).finally(() => {
+        this.customerLoading = false
+      })
     },
     loadCostCategories() {
       return listCostCategories({ status: '0' }).then(res => {
@@ -214,11 +231,27 @@ export default {
       return Object.assign({}, node, { allocations, nodeBudget: this.sumAllocations(allocations) })
     },
     handleCustomerDone(customer) {
-      this.loadCustomers()
+      this.loadCustomers(customer ? customer.customerName : undefined)
       if (customer && customer.customerId) {
+        this.mergeSelectedCustomer(customer)
         this.form.projInfo.customerId = customer.customerId
         this.form.projInfo.customerName = customer.customerName
         this.markDirty()
+      }
+    },
+    remoteCustomerSearch(keyword) {
+      this.loadCustomers(keyword)
+    },
+    handleCustomerChange(customerId) {
+      const customer = this.customers.find(item => item.customerId === customerId)
+      this.form.projInfo.customerName = customer ? customer.customerName : ''
+      this.markDirty()
+    },
+    mergeSelectedCustomer(customer) {
+      if (!customer || !customer.customerId) return
+      const exists = this.customers.some(item => item.customerId === customer.customerId)
+      if (!exists) {
+        this.customers.unshift(customer)
       }
     },
     addNode() {
@@ -282,7 +315,7 @@ export default {
       })
       return {
         projInfo: Object.assign({}, this.form.projInfo, {
-          customerName: customer ? customer.customerName : '',
+          customerName: customer ? customer.customerName : this.form.projInfo.customerName,
           totalBudget: this.nodeTotal
         }),
         wbsNodes,

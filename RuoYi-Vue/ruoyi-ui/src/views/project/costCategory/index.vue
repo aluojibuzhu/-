@@ -36,7 +36,7 @@
       </div>
 
       <el-table
-        v-if="refreshTable"
+        ref="categoryTable"
         v-loading="loading"
         :data="categoryList"
         row-key="categoryId"
@@ -45,7 +45,11 @@
         :default-expand-all="isExpandAll"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       >
-        <el-table-column prop="categoryName" label="科目名称" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="categoryName" label="科目名称" min-width="260" header-align="center" align="left" show-overflow-tooltip>
+          <template slot-scope="scope">
+            <span class="category-name-cell">{{ scope.row.categoryName }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="级别" width="100" align="center">
           <template slot-scope="scope">
             <el-tag size="small" :type="scope.row.categoryLevel === 1 ? 'primary' : 'success'">{{ scope.row.categoryLevel === 1 ? '一级' : '二级' }}</el-tag>
@@ -58,11 +62,13 @@
           </template>
         </el-table-column>
         <el-table-column prop="updateTime" label="更新时间" width="170" align="center" />
-        <el-table-column label="操作" width="240" align="center" fixed="right">
+        <el-table-column label="操作" width="276" align="center" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="scope.row.categoryLevel === 1" type="text" icon="el-icon-plus" @click="handleAdd(scope.row)" v-hasPermi="['project:costCategory:add']">新增下级</el-button>
-            <el-button type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)" v-hasPermi="['project:costCategory:edit']">编辑</el-button>
-            <el-button type="text" icon="el-icon-delete" class="danger-action" @click="handleDelete(scope.row)" v-hasPermi="['project:costCategory:remove']">删除</el-button>
+            <div class="action-cell">
+              <el-button v-if="scope.row.categoryLevel === 1" type="text" icon="el-icon-plus" @click="handleAdd(scope.row)" v-hasPermi="['project:costCategory:add']">新增下级</el-button>
+              <el-button type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)" v-hasPermi="['project:costCategory:edit']">编辑</el-button>
+              <el-button type="text" icon="el-icon-delete" class="danger-action" @click="handleDelete(scope.row)" v-hasPermi="['project:costCategory:remove']">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -108,7 +114,6 @@ export default {
       submitting: false,
       open: false,
       title: '',
-      refreshTable: true,
       isExpandAll: true,
       categoryList: [],
       sourceList: [],
@@ -160,10 +165,17 @@ export default {
       this.handleQuery()
     },
     toggleExpandAll() {
-      this.refreshTable = false
       this.isExpandAll = !this.isExpandAll
       this.$nextTick(() => {
-        this.refreshTable = true
+        this.toggleRows(this.categoryList, this.isExpandAll)
+      })
+    },
+    toggleRows(rows, expanded) {
+      rows.forEach(row => {
+        this.$refs.categoryTable.toggleRowExpansion(row, expanded)
+        if (row.children && row.children.length) {
+          this.toggleRows(row.children, expanded)
+        }
       })
     },
     handleAdd(row) {
@@ -272,6 +284,25 @@ export default {
   margin-left: 10px;
   color: #8c98a8;
   font-size: 13px;
+}
+
+.category-name-cell {
+  display: inline-block;
+  max-width: 100%;
+  line-height: 1.6;
+  vertical-align: middle;
+}
+
+.action-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.action-cell /deep/ .el-button + .el-button {
+  margin-left: 0;
 }
 
 .danger-action {

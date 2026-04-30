@@ -57,7 +57,11 @@ public class SysCostCategoryServiceImpl implements ISysCostCategoryService
         if (category.getParentId() != 0L)
         {
             SysCostCategory parent = mapper.selectSysCostCategoryById(category.getParentId());
-            if (parent == null || parent.getCategoryLevel() == null || parent.getCategoryLevel() != 1)
+            if (parent == null)
+            {
+                throw new ServiceException("上级科目不存在");
+            }
+            if (parent.getCategoryLevel() == null || parent.getCategoryLevel() != 1)
             {
                 throw new ServiceException("成本科目仅支持维护到二级");
             }
