@@ -56,6 +56,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="orderNum" label="排序" width="100" align="center" />
+        <el-table-column label="工时单价" width="130" align="center">
+          <template slot-scope="scope">{{ formatMoney(scope.row.unitPrice) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template slot-scope="scope">
             <el-tag size="small" :type="scope.row.status === '0' ? 'success' : 'info'">{{ scope.row.status === '0' ? '正常' : '停用' }}</el-tag>
@@ -85,6 +88,9 @@
         <el-form-item label="显示排序" prop="orderNum">
           <el-input-number v-model="form.orderNum" :min="0" controls-position="right" />
         </el-form-item>
+        <el-form-item label="工时单价" prop="unitPrice">
+          <el-input-number v-model="form.unitPrice" :min="0" :precision="2" controls-position="right" class="field-full" />
+        </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
             <el-radio label="0">正常</el-radio>
@@ -104,6 +110,7 @@
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import { addCostCategory, delCostCategory, getCostCategory, listCostCategories, updateCostCategory } from '@/api/project/costCategory'
+import { formatMoney } from '@/utils/project'
 
 export default {
   name: 'CostCategoryIndex',
@@ -154,7 +161,7 @@ export default {
       return { id: node.categoryId, label: node.categoryName, children: node.children }
     },
     reset() {
-      this.form = { categoryId: undefined, parentId: 0, categoryName: '', categoryLevel: 1, orderNum: 0, status: '0' }
+      this.form = { categoryId: undefined, parentId: 0, categoryName: '', categoryLevel: 1, orderNum: 0, unitPrice: 0, status: '0' }
       this.resetForm('form')
     },
     handleQuery() {
@@ -215,6 +222,9 @@ export default {
         this.$message.success('删除成功')
         this.load()
       }).catch(() => {})
+    },
+    formatMoney(value) {
+      return formatMoney(value)
     }
   }
 }
@@ -261,6 +271,10 @@ export default {
 
 .filter-status {
   width: 140px;
+}
+
+.field-full {
+  width: 100%;
 }
 
 .table-panel {

@@ -1,6 +1,7 @@
 package com.ruoyi.system.service.project.impl;
 
 import java.util.List;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.common.exception.ServiceException;
@@ -74,6 +75,10 @@ public class SysCostCategoryServiceImpl implements ISysCostCategoryService
         if (StringUtils.isEmpty(category.getStatus()))
         {
             category.setStatus("0");
+        }
+        if (category.getUnitPrice() == null)
+        {
+            category.setUnitPrice(BigDecimal.ZERO);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.ruoyi.system.domain.project;
 
+import java.math.BigDecimal;
 import com.ruoyi.common.core.domain.BaseEntity;
 
 public class SysCostCategory extends BaseEntity
@@ -11,6 +12,7 @@ public class SysCostCategory extends BaseEntity
     private Integer categoryLevel;
     private Integer orderNum;
     private String status;
+    private BigDecimal unitPrice;
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public Long getParentId() { return parentId; }
@@ -23,5 +25,6 @@ public class SysCostCategory extends BaseEntity
     public void setOrderNum(Integer orderNum) { this.orderNum = orderNum; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
 }
-

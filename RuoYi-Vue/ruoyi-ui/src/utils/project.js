@@ -24,3 +24,29 @@ export function formatMoney(value) {
 export function canEditProject(status) {
   return status === '0' || status === '3'
 }
+
+export const WORK_HOUR_STATUS_OPTIONS = [
+  { value: '0', label: '草稿' },
+  { value: '1', label: '审批中' },
+  { value: '2', label: '已通过' },
+  { value: '3', label: '已驳回' },
+  { value: '4', label: '已入账' }
+]
+
+export function workHourStatusLabel(status) {
+  const item = WORK_HOUR_STATUS_OPTIONS.find(i => i.value === status)
+  return item ? item.label : status
+}
+
+export function workHourStatusTagType(status) {
+  return ({ '0': 'info', '1': 'warning', '2': 'success', '3': 'danger', '4': 'success' })[status] || 'info'
+}
+
+export function canEditWorkHour(status) {
+  return status === '0' || status === '3'
+}
+
+export function formatHours(value) {
+  const amount = Number(value || 0)
+  return amount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}

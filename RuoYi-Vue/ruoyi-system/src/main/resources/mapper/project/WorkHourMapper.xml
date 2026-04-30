@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.WorkHourMapper">
+  <resultMap id="WorkHourResult" type="com.ruoyi.system.domain.project.WorkHour">
+    <id property="whId" column="wh_id"/>
+    <result property="whNo" column="wh_no"/>
+    <result property="projId" column="proj_id"/>
+    <result property="projName" column="proj_name"/>
+    <result property="nodeId" column="node_id"/>
+    <result property="nodeName" column="node_name"/>
+    <result property="categoryId" column="category_id"/>
+    <result property="categoryName" column="category_name"/>
+    <result property="workType" column="work_type"/>
+    <result property="workDate" column="work_date"/>
+    <result property="workHours" column="work_hours"/>
+    <result property="unitPrice" column="unit_price"/>
+    <result property="workCost" column="work_cost"/>
+    <result property="workDesc" column="work_desc"/>
+    <result property="status" column="status"/>
+    <result property="submitTime" column="submit_time"/>
+    <result property="approveBy" column="approve_by"/>
+    <result property="approveTime" column="approve_time"/>
+    <result property="rejectReason" column="reject_reason"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+    <result property="updateBy" column="update_by"/>
+    <result property="updateTime" column="update_time"/>
+    <result property="remark" column="remark"/>
+  </resultMap>
+
+  <select id="selectWorkHourList" parameterType="com.ruoyi.system.domain.project.WorkHour" resultMap="WorkHourResult">
+    select * from wh_work_hour
+    where del_flag = '0'
+    <if test="whNo != null and whNo != ''">and wh_no like concat('%', #{whNo}, '%')</if>
+    <if test="projId != null">and proj_id = #{projId}</if>
+    <if test="nodeId != null">and node_id = #{nodeId}</if>
+    <if test="workType != null and workType != ''">and work_type = #{workType}</if>
+    <if test="status != null and status != ''">and status = #{status}</if>
+    <if test="beginWorkDate != null">and work_date &gt;= #{beginWorkDate}</if>
+    <if test="endWorkDate != null">and work_date &lt;= #{endWorkDate}</if>
+    order by create_time desc, wh_id desc
+  </select>
+
+  <select id="selectWorkHourById" resultMap="WorkHourResult">
+    select * from wh_work_hour where wh_id = #{whId} and del_flag = '0'
+  </select>
+
+  <insert id="insertWorkHour" parameterType="com.ruoyi.system.domain.project.WorkHour" useGeneratedKeys="true" keyProperty="whId">
+    insert into wh_work_hour(wh_no, proj_id, proj_name, node_id, node_name, category_id, category_name, work_type, work_date, work_hours, unit_price, work_cost, work_desc, status, submit_time, approve_by, approve_time, reject_reason, create_by, create_time, update_by, update_time, remark)
+    values(#{whNo}, #{projId}, #{projName}, #{nodeId}, #{nodeName}, #{categoryId}, #{categoryName}, #{workType}, #{workDate}, #{workHours}, #{unitPrice}, #{workCost}, #{workDesc}, #{status}, #{submitTime}, #{approveBy}, #{approveTime}, #{rejectReason}, #{createBy}, now(), #{updateBy}, now(), #{remark})
+  </insert>
+
+  <update id="updateWorkHour" parameterType="com.ruoyi.system.domain.project.WorkHour">
+    update wh_work_hour
+    set wh_no=#{whNo}, proj_id=#{projId}, proj_name=#{projName}, node_id=#{nodeId}, node_name=#{nodeName}, category_id=#{categoryId}, category_name=#{categoryName}, work_type=#{workType}, work_date=#{workDate}, work_hours=#{workHours}, unit_price=#{unitPrice}, work_cost=#{workCost}, work_desc=#{workDesc}, status=#{status}, submit_time=#{submitTime}, approve_by=#{approveBy}, approve_time=#{approveTime}, reject_reason=#{rejectReason}, update_by=#{updateBy}, update_time=now(), remark=#{remark}
+    where wh_id=#{whId}
+  </update>
+
+  <update id="deleteWorkHourById">
+    update wh_work_hour set del_flag = '1' where wh_id = #{whId}
+  </update>
+
+  <insert id="insertWorkHourSequence" parameterType="com.ruoyi.system.domain.project.WorkHourSequence" useGeneratedKeys="true" keyProperty="id">
+    insert into wh_no_sequence values(null)
+  </insert>
+</mapper>

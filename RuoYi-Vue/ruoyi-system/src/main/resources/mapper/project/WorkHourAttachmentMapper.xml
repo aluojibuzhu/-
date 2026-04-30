@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.WorkHourAttachmentMapper">
+  <resultMap id="WorkHourAttachmentResult" type="com.ruoyi.system.domain.project.WorkHourAttachment">
+    <id property="attachmentId" column="attachment_id"/>
+    <result property="whId" column="wh_id"/>
+    <result property="fileName" column="file_name"/>
+    <result property="originalName" column="original_name"/>
+    <result property="filePath" column="file_path"/>
+    <result property="fileSize" column="file_size"/>
+    <result property="fileType" column="file_type"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+  </resultMap>
+
+  <select id="selectByWhId" resultMap="WorkHourAttachmentResult">
+    select * from wh_attachment where wh_id = #{whId} and del_flag = '0' order by attachment_id asc
+  </select>
+
+  <insert id="insertWorkHourAttachment" parameterType="com.ruoyi.system.domain.project.WorkHourAttachment" useGeneratedKeys="true" keyProperty="attachmentId">
+    insert into wh_attachment(wh_id, file_name, original_name, file_path, file_size, file_type, create_by, create_time)
+    values(#{whId}, #{fileName}, #{originalName}, #{filePath}, #{fileSize}, #{fileType}, #{createBy}, now())
+  </insert>
+
+  <update id="deleteByWhId">
+    update wh_attachment set del_flag = '1' where wh_id = #{whId}
+  </update>
+</mapper>

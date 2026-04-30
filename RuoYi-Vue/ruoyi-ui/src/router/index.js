@@ -181,6 +181,20 @@ export const dynamicRoutes = [
         meta: { title: '项目详情', activeMenu: '/project/projInfo' }
       }
     ]
+  },
+  {
+    path: '/cost/workHour/detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['cost:workHour:query'],
+    children: [
+      {
+        path: ':id(\\d+)',
+        component: () => import('@/views/project/workHour/detail'),
+        name: 'WorkHourDetail',
+        meta: { title: '工时详情', activeMenu: '/cost/workHour' }
+      }
+    ]
   }
 ]
 
