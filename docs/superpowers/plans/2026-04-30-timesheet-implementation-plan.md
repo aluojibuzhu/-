@@ -3,6 +3,7 @@
 | 版本号 | 日期 | 作者 | 说明 |
 |--------|------|------|------|
 | V1.0 | 2026-04-30 | 产品规划团队 | 基于PRD_MVP.md，制定工时填报模块实现方案 |
+| V1.1 | 2026-04-30 | 产品规划团队 | 审批方式改为模块3统一入口，详情页改为只读，审批操作收归审批入账模块 |
 
 > **关联文档**: [PRD_MVP.md](../../../PRD_MVP.md) · [项目立项设计文档](../specs/2026-04-21-project-establishment-design.md) · [前端规范设计文档](../specs/2026-04-29-frontend-specification-design.md)
 
@@ -21,7 +22,7 @@
 | 工作类型 | 若依字典 `wh_work_type` | 业务可配置，无需改代码 |
 | 工时单价 | `sys_cost_category` 表新增 `unit_price` 字段 | 单价与科目绑定，企业级统一配置 |
 | 附件存储 | 独立 `wh_attachment` 表 | 支持一个工时单多附件，1:N 关系 |
-| 审批方式 | 详情页内嵌审批（与项目立项一致） | 统一审批列表在模块3「审批入账」实现 |
+| 审批方式 | 统一收归模块3「审批入账」 | 工时填报仅负责「提交审批」，审批人在模块3的待审批列表统一处理 |
 | 工时编号 | `WH-YYYYMMDD-NNN`（序列表方案） | 与项目编号 `PRJ-YYYYMMDD-NNN` 格式一致 |
 | 状态流转 | 0草稿→1审批中→2已通过/3已驳回→4已入账 | 复用项目立项模块的状态机模式 |
 
@@ -179,7 +180,7 @@ ruoyi-ui/src/
 └── views/project/workHour/
     ├── index.vue                       # 工时列表页
     ├── form.vue                        # 工时填报/编辑表单
-    └── detail.vue                      # 工时详情/审批页
+    └── detail.vue                      # 工时详情（只读，审批在模块3）
 ```
 
 ### 5.2 列表页 `index.vue`
@@ -223,18 +224,18 @@ action-bar (底部固定):
 
 ### 5.4 详情页 `detail.vue`
 
-遵循前端规范的详情卡片结构：
+遵循前端规范的详情卡片结构。详情页仅做只读展示，**审批操作统一在模块3完成**：
 
 ```
-detail-heading: 工时编号 + 状态标签 + 操作按钮
-  - 审批中：通过 / 驳回（仅 project:workHour:approve 权限）
-  - 已通过：入账（仅 project:workHour:post 权限）
+detail-heading: 工时编号 + 状态标签
 summary-row:   工时数 / 工时单价 / 工时成本（3个统计卡片）
 detail-card:   基本信息（项目/WBS/科目/类型/日期）
 detail-card:   工作描述 / 驳回原因（驳回时显示）
 detail-card:   附件列表（下载链接）
 审计轨迹:      创建人/创建时间/提交时间/审批人/审批时间
 ```
+
+> 审批操作（通过/驳回/入账）统一在模块3「审批入账」中完成。工时详情页仅用于查看，不内嵌审批按钮。
 
 ---
 
@@ -256,8 +257,8 @@ detail-card:   附件列表（下载链接）
 | 工时新增 | `project:workHour:add` |
 | 工时修改 | `project:workHour:edit` |
 | 工时删除 | `project:workHour:remove` |
-| 工时审批 | `project:workHour:approve` |
-| 工时入账 | `project:workHour:post` |
+| 工时审批 | `project:workHour:approve` | 模块3「审批入账」中使用 |
+| 工时入账 | `project:workHour:post` | 模块3「审批入账」中使用 |
 
 父菜单挂载在"项目管理"目录下（parent_id = 项目管理菜单ID），order_num 接在项目详情之后（order_num = 4）。
 
@@ -286,11 +287,11 @@ detail-card:   附件列表（下载链接）
 4. 附件通过 `/common/upload` 上传，返回路径
 5. 保存草稿 → Service 校验 → 生成编号 → insert 主表 + 附件表
 
-**审批流程**：
-1. 提交审批：DRAFT/REJECTED → PENDING
-2. 审批通过：PENDING → APPROVED
-3. 驳回：PENDING → REJECTED（必填原因）
-4. 入账：APPROVED → POSTED（模块3扩展预算扣减）
+**审批流程（全部在模块3「审批入账」中完成）**：
+1. 提交审批：DRAFT/REJECTED → PENDING（工时填报页面操作）
+2. 审批通过：PENDING → APPROVED（模块3操作）
+3. 驳回：PENDING → REJECTED，必填原因（模块3操作）
+4. 入账：APPROVED → POSTED，扩展预算扣减（模块3操作）
 
 ---
 
