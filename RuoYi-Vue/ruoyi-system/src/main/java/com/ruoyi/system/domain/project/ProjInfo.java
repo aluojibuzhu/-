@@ -20,6 +20,8 @@ public class ProjInfo extends BaseEntity
     private BigDecimal contractAmount;
     private String projDesc;
     private BigDecimal totalBudget;
+    private BigDecimal actualCost;
+    private BigDecimal budgetBalance;
     private String status;
     private String rejectReason;
     public Long getProjId() { return projId; }
@@ -42,6 +44,10 @@ public class ProjInfo extends BaseEntity
     public void setProjDesc(String projDesc) { this.projDesc = projDesc; }
     public BigDecimal getTotalBudget() { return totalBudget; }
     public void setTotalBudget(BigDecimal totalBudget) { this.totalBudget = totalBudget; }
+    public BigDecimal getActualCost() { return actualCost; }
+    public void setActualCost(BigDecimal actualCost) { this.actualCost = actualCost; }
+    public BigDecimal getBudgetBalance() { return budgetBalance; }
+    public void setBudgetBalance(BigDecimal budgetBalance) { this.budgetBalance = budgetBalance; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getRejectReason() { return rejectReason; }

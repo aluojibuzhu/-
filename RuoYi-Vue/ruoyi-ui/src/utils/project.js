@@ -51,7 +51,7 @@ export function formatHours(value) {
   return amount.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
-export const REIMBURSEMENT_STATUS_OPTIONS = WORK_HOUR_STATUS_OPTIONS
+export const REIMBURSEMENT_STATUS_OPTIONS = [...WORK_HOUR_STATUS_OPTIONS]
 
 export function reimbursementStatusLabel(status) {
   return workHourStatusLabel(status)

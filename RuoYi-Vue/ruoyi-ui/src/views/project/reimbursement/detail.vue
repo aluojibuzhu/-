@@ -16,30 +16,38 @@
     </el-row>
 
     <div v-if="form.reimbursement" class="detail-card">
-      <div class="section-title">基本信息</div>
-      <div class="detail-grid">
-        <div class="detail-item"><span>所属项目</span><strong>{{ form.reimbursement.projName }}</strong></div>
-        <div class="detail-item"><span>WBS节点</span><strong>{{ form.reimbursement.nodeName }}</strong></div>
-        <div class="detail-item"><span>成本科目</span><strong>{{ form.reimbursement.categoryName }}</strong></div>
-        <div class="detail-item"><span>费用类型</span><strong>{{ expenseTypeLabel(form.reimbursement.expenseType) }}</strong></div>
-        <div class="detail-item detail-item-full"><span>费用说明</span><strong>{{ form.reimbursement.expenseDesc || '-' }}</strong></div>
-        <div v-if="form.reimbursement.rejectReason" class="detail-item detail-item-full"><span>驳回原因</span><strong>{{ form.reimbursement.rejectReason }}</strong></div>
+      <div class="detail-card-title">基本信息</div>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">所属项目</span><span class="detail-value">{{ form.reimbursement.projName }}</span></div>
+        <div class="detail-item"><span class="detail-label">WBS节点</span><span class="detail-value">{{ form.reimbursement.nodeName }}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">成本科目</span><span class="detail-value">{{ form.reimbursement.categoryName }}</span></div>
+        <div class="detail-item"><span class="detail-label">费用类型</span><span class="detail-value">{{ expenseTypeLabel(form.reimbursement.expenseType) }}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item detail-item-full"><span class="detail-label">费用说明</span><span class="detail-value">{{ form.reimbursement.expenseDesc || '-' }}</span></div>
+      </div>
+      <div v-if="form.reimbursement.rejectReason" class="detail-row">
+        <div class="detail-item detail-item-full"><span class="detail-label">驳回原因</span><span class="detail-value">{{ form.reimbursement.rejectReason }}</span></div>
       </div>
     </div>
 
     <div v-if="form.reimbursement" class="detail-card">
-      <div class="section-title">发票附件</div>
+      <div class="detail-card-title">发票附件</div>
       <div v-if="form.attachments.length" class="attachment-list"><el-link v-for="item in form.attachments" :key="item.attachmentId || item.filePath" :href="baseUrl + item.filePath" target="_blank" icon="el-icon-paperclip">{{ item.originalName || item.fileName }}</el-link></div>
       <el-empty v-else description="暂无附件" />
     </div>
 
     <div v-if="form.reimbursement" class="detail-card">
-      <div class="section-title">审批轨迹</div>
-      <div class="detail-grid">
-        <div class="detail-item"><span>创建时间</span><strong>{{ form.reimbursement.createTime || '-' }}</strong></div>
-        <div class="detail-item"><span>提交时间</span><strong>{{ form.reimbursement.submitTime || '-' }}</strong></div>
-        <div class="detail-item"><span>审批人</span><strong>{{ form.reimbursement.approveBy || '-' }}</strong></div>
-        <div class="detail-item"><span>审批时间</span><strong>{{ form.reimbursement.approveTime || '-' }}</strong></div>
+      <div class="detail-card-title">审批轨迹</div>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">创建时间</span><span class="detail-value">{{ form.reimbursement.createTime || '-' }}</span></div>
+        <div class="detail-item"><span class="detail-label">提交时间</span><span class="detail-value">{{ form.reimbursement.submitTime || '-' }}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item"><span class="detail-label">审批人</span><span class="detail-value">{{ form.reimbursement.approveBy || '-' }}</span></div>
+        <div class="detail-item"><span class="detail-label">审批时间</span><span class="detail-value">{{ form.reimbursement.approveTime || '-' }}</span></div>
       </div>
     </div>
   </div>
@@ -61,9 +69,33 @@ export default {
       this.loading = true
       getReimbursement(id).then(res => { const data = res.data || {}; this.form = { reimbursement: data.reimbursement, attachments: data.attachments || [] } }).catch(() => this.$message.error('报销详情加载失败')).finally(() => { this.loading = false })
     },
-    approveIt() { this.submitting = true; approveReimbursement(this.form.reimbursement.reimburseId).then(() => { this.$modal.msgSuccess('审批通过'); this.load() }).finally(() => { this.submitting = false }) },
-    rejectIt() { this.$prompt('请输入驳回原因', '驳回报销申请', { inputType: 'textarea', inputValidator: v => !!v || '请填写驳回原因' }).then(({ value }) => rejectReimbursement(this.form.reimbursement.reimburseId, { rejectReason: value })).then(() => { this.$modal.msgSuccess('已驳回'); this.load() }) },
-    postIt() { this.submitting = true; postReimbursement(this.form.reimbursement.reimburseId).then(() => { this.$modal.msgSuccess('入账成功'); this.load() }).finally(() => { this.submitting = false }) },
+    approveIt() {
+      this.submitting = true
+      approveReimbursement(this.form.reimbursement.reimburseId).then(() => {
+        this.$message.success('审批通过')
+        this.load()
+      }).catch(() => this.$message.error('审批失败')).finally(() => { this.submitting = false })
+    },
+    rejectIt() {
+      this.$prompt('请输入驳回原因', '驳回报销申请', { inputType: 'textarea', inputValidator: v => !!v || '请填写驳回原因' }).then(({ value }) => {
+        this.submitting = true
+        return rejectReimbursement(this.form.reimbursement.reimburseId, { rejectReason: value })
+      }).then(() => {
+        this.$message.success('已驳回')
+        this.load()
+      }).catch(error => {
+        if (error !== 'cancel') {
+          this.$message.error('驳回失败')
+        }
+      }).finally(() => { this.submitting = false })
+    },
+    postIt() {
+      this.submitting = true
+      postReimbursement(this.form.reimbursement.reimburseId).then(() => {
+        this.$message.success('入账成功')
+        this.load()
+      }).catch(() => this.$message.error('入账失败')).finally(() => { this.submitting = false })
+    },
     expenseTypeLabel(value) { const item = this.dict.type.exp_expense_type.find(i => i.value === value); return item ? item.label : value },
     statusLabel(status) { return reimbursementStatusLabel(status) },
     statusTag(status) { return reimbursementStatusTagType(status) },
@@ -73,5 +105,152 @@ export default {
 </script>
 
 <style scoped>
-.page-heading,.detail-card{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:18px 24px;margin-bottom:16px}.page-heading{display:flex;justify-content:space-between;align-items:center}.title-line{display:flex;align-items:center;gap:10px}.title-line h2{margin:0;font-size:24px;color:#1f2937}.page-heading p{margin:6px 0 0;color:#667085}.summary-row{margin-bottom:16px}.summary-item{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:18px 22px}.summary-item span{display:block;color:#667085;margin-bottom:8px}.summary-item strong{font-size:22px;color:#1890ff}.section-title{font-size:18px;font-weight:600;color:#1f2937;margin-bottom:18px;padding-left:10px;border-left:4px solid #1890ff}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.detail-item{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:center;background:#f8fafc;border:1px solid #eef2f7;border-radius:6px;padding:12px 14px}.detail-item-full{grid-column:1 / -1}.detail-item span{color:#667085}.detail-item strong{font-weight:500;color:#1f2937;word-break:break-word}.attachment-list{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.reimbursement-detail-page {
+  background: #f5f7fa;
+  min-height: calc(100vh - 84px);
+}
+
+.page-heading,
+.summary-item,
+.detail-card {
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 6px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-line h2 {
+  margin: 0;
+  color: #1f2d3d;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.page-heading p {
+  margin: 8px 0 0;
+  color: #8c98a8;
+  font-size: 13px;
+}
+
+.summary-row {
+  margin-bottom: 16px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 86px;
+  padding: 16px 18px;
+}
+
+.summary-item span {
+  display: block;
+  margin-bottom: 10px;
+  color: #8c98a8;
+  font-size: 13px;
+}
+
+.summary-item strong {
+  color: #1f2d3d;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.detail-card {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.detail-card-title {
+  position: relative;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  color: #1f2d3d;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.detail-card-title::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 36px;
+  height: 3px;
+  content: '';
+  background: #1890ff;
+  border-radius: 2px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid #eef2f6;
+}
+
+.detail-row:first-of-type {
+  border-top: 0;
+}
+
+.detail-item {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  min-height: 48px;
+}
+
+.detail-item-full {
+  grid-column: 1 / -1;
+}
+
+.detail-label,
+.detail-value {
+  padding: 12px;
+  line-height: 1.6;
+}
+
+.detail-label {
+  color: #606266;
+  white-space: nowrap;
+  background: #f8f8f9;
+}
+
+.detail-value {
+  color: #1f2d3d;
+  overflow-wrap: anywhere;
+}
+
+.detail-item-full .detail-value {
+  white-space: pre-wrap;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

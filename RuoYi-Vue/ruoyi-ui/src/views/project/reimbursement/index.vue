@@ -83,7 +83,12 @@ export default {
     getList() {
       this.loading = true
       const query = Object.assign({}, this.queryParams, { beginExpenseDate: this.dateRange && this.dateRange[0], endExpenseDate: this.dateRange && this.dateRange[1] })
-      listReimbursements(query).then(res => { this.list = res.rows || []; this.total = res.total || 0; this.loading = false }).catch(() => { this.loading = false })
+      listReimbursements(query).then(res => {
+        this.list = res.rows || []
+        this.total = res.total || 0
+      }).catch(() => this.$message.error('报销列表加载失败')).finally(() => {
+        this.loading = false
+      })
     },
     loadProjects() {
       return Promise.all([listProjInfos({ pageNum: 1, pageSize: 100, status: '2' }), listProjInfos({ pageNum: 1, pageSize: 100, status: '4' })])
@@ -95,8 +100,20 @@ export default {
     handleAdd() { this.$router.push('/cost/reimbursement/form') },
     handleUpdate(row) { this.$router.push({ path: '/cost/reimbursement/form', query: { id: row.reimburseId } }) },
     handleDetail(row) { this.$router.push('/cost/reimbursement/detail/' + row.reimburseId) },
-    handleSubmit(row) { this.$modal.confirm('确认提交该报销申请吗？').then(() => submitReimbursement(row.reimburseId)).then(() => { this.$modal.msgSuccess('提交成功'); this.getList() }) },
-    handleDelete(row) { this.$modal.confirm('确认删除报销单 ' + row.reimburseNo + ' 吗？').then(() => delReimbursement(row.reimburseId)).then(() => { this.$modal.msgSuccess('删除成功'); this.getList() }) },
+    handleSubmit(row) {
+      submitReimbursement(row.reimburseId).then(() => {
+        this.$message.success('提交成功')
+        this.getList()
+      }).catch(() => this.$message.error('提交失败'))
+    },
+    handleDelete(row) {
+      this.$modal.confirm('确认删除报销单 ' + row.reimburseNo + ' 吗？').then(() => {
+        delReimbursement(row.reimburseId).then(() => {
+          this.$message.success('删除成功')
+          this.getList()
+        }).catch(() => this.$message.error('删除失败'))
+      }).catch(() => {})
+    },
     canEdit(status) { return canEditReimbursement(status) },
     statusLabel(status) { return reimbursementStatusLabel(status) },
     statusTag(status) { return reimbursementStatusTagType(status) },
@@ -106,5 +123,67 @@ export default {
 </script>
 
 <style scoped>
-.page-heading,.filter-panel,.table-panel{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:18px 24px;margin-bottom:16px}.page-heading{display:flex;justify-content:space-between;align-items:center}.page-heading h2{margin:0 0 6px;font-size:24px;color:#1f2937}.page-heading p{margin:0;color:#667085}.table-toolbar{display:flex;align-items:center;margin-bottom:14px}.toolbar-title{font-size:18px;font-weight:600;color:#1f2937}.toolbar-count{margin-left:8px;color:#667085}.danger-action{color:#f56c6c}
+.reimbursement-page {
+  background: #f5f7fa;
+  min-height: calc(100vh - 84px);
+}
+
+.page-heading,
+.filter-panel,
+.table-panel {
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 6px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.page-heading h2 {
+  margin: 0;
+  color: #1f2d3d;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.page-heading p {
+  margin: 8px 0 0;
+  color: #8c98a8;
+}
+
+.filter-panel {
+  padding: 16px 18px 0;
+  margin-bottom: 14px;
+}
+
+.table-panel {
+  padding: 16px 18px 18px;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.toolbar-title {
+  color: #1f2d3d;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.toolbar-count {
+  margin-left: 10px;
+  color: #8c98a8;
+  font-size: 13px;
+}
+
+.danger-action {
+  color: #ff4d4f;
+}
 </style>

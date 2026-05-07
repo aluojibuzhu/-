@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper.project;
 
 import java.util.List;
+import java.math.BigDecimal;
 import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.domain.project.ProjectSequence;
 import com.ruoyi.system.domain.project.ProjInfo;
@@ -14,4 +15,5 @@ public interface ProjInfoMapper
     int deleteProjInfoById(Long projId);
     int insertProjNoSequence(ProjectSequence sequence);
     int updateCustomerNameByCustomerId(@Param("customerId") Long customerId, @Param("customerName") String customerName);
+    int increaseActualCost(@Param("projId") Long projId, @Param("amount") BigDecimal amount, @Param("username") String username);
 }

@@ -14,6 +14,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <result property="contractAmount" column="contract_amount"/>
     <result property="projDesc" column="proj_desc"/>
     <result property="totalBudget" column="total_budget"/>
+    <result property="actualCost" column="actual_cost"/>
+    <result property="budgetBalance" column="budget_balance"/>
     <result property="status" column="status"/>
     <result property="rejectReason" column="reject_reason"/>
     <result property="createBy" column="create_by"/>
@@ -27,5 +29,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   <update id="updateProjInfo">update proj_info set proj_no=#{projNo},proj_name=#{projName},customer_id=#{customerId},customer_name=#{customerName},plan_start_date=#{planStartDate},plan_end_date=#{planEndDate},contract_amount=#{contractAmount},proj_desc=#{projDesc},total_budget=#{totalBudget},status=#{status},reject_reason=#{rejectReason},update_by=#{updateBy},update_time=now() where proj_id=#{projId}</update>
   <update id="deleteProjInfoById">update proj_info set del_flag='1' where proj_id=#{projId}</update>
   <update id="updateCustomerNameByCustomerId">update proj_info set customer_name=#{customerName}, update_time=now() where customer_id=#{customerId} and del_flag='0'</update>
+  <update id="increaseActualCost">update proj_info set actual_cost = ifnull(actual_cost, 0) + #{amount}, budget_balance = ifnull(total_budget, 0) - (ifnull(actual_cost, 0) + #{amount}), update_by=#{username}, update_time=now() where proj_id=#{projId} and del_flag='0'</update>
   <insert id="insertProjNoSequence" parameterType="com.ruoyi.system.domain.project.ProjectSequence" useGeneratedKeys="true" keyProperty="id">insert into proj_no_sequence values(null)</insert>
 </mapper>

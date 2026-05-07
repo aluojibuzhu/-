@@ -8,8 +8,10 @@
     <result property="categoryId" column="category_id"/>
     <result property="categoryName" column="category_name"/>
     <result property="allocationAmount" column="allocation_amount"/>
+    <result property="actualCost" column="actual_cost"/>
   </resultMap>
   <select id="selectByProjId" resultMap="ProjCostAllocationResult">select * from proj_cost_allocation where proj_id = #{projId} and del_flag = '0'</select>
   <insert id="insertProjCostAllocation" parameterType="com.ruoyi.system.domain.project.ProjCostAllocation">insert into proj_cost_allocation(proj_id,node_id,category_id,category_name,allocation_amount,create_by,create_time,update_by,update_time) values(#{projId},#{nodeId},#{categoryId},#{categoryName},#{allocationAmount},#{createBy},now(),#{updateBy},now())</insert>
   <delete id="deleteByProjId">delete from proj_cost_allocation where proj_id=#{projId}</delete>
+  <update id="increaseActualCost">update proj_cost_allocation set actual_cost = ifnull(actual_cost, 0) + #{amount}, update_by=#{username}, update_time=now() where proj_id=#{projId} and node_id=#{nodeId} and category_id=#{categoryId} and del_flag='0'</update>
 </mapper>

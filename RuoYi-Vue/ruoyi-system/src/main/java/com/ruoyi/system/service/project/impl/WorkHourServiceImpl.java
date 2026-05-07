@@ -25,6 +25,7 @@ import com.ruoyi.system.mapper.project.ProjWbsNodeMapper;
 import com.ruoyi.system.mapper.project.SysCostCategoryMapper;
 import com.ruoyi.system.mapper.project.WorkHourAttachmentMapper;
 import com.ruoyi.system.mapper.project.WorkHourMapper;
+import com.ruoyi.system.service.project.ICostApprovalService;
 import com.ruoyi.system.service.project.IWorkHourService;
 
 @Service
@@ -43,6 +44,8 @@ public class WorkHourServiceImpl implements IWorkHourService
     private ProjWbsNodeMapper wbsNodeMapper;
     @Autowired
     private SysCostCategoryMapper categoryMapper;
+    @Autowired
+    private ICostApprovalService costApprovalService;
 
     public List<WorkHour> selectWorkHourList(WorkHour workHour)
     {
@@ -135,11 +138,7 @@ public class WorkHourServiceImpl implements IWorkHourService
 
     public int postCost(Long whId, String username)
     {
-        WorkHour workHour = workHourMapper.selectWorkHourById(whId);
-        WorkHourStatus.require(workHour, WorkHourStatus.APPROVED);
-        workHour.setStatus(WorkHourStatus.POSTED.code());
-        workHour.setUpdateBy(username);
-        return workHourMapper.updateWorkHour(workHour);
+        return costApprovalService.postApproved(CostApprovalServiceImpl.BILL_TYPE_WORK_HOUR, whId, username);
     }
 
     public int deleteWorkHourById(Long whId)

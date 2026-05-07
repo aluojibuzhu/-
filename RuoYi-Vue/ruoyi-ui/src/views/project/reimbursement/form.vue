@@ -7,7 +7,7 @@
 
     <el-form ref="form" :model="form.reimbursement" :rules="rules" size="small" label-width="100px">
       <div class="form-panel">
-        <div class="section-title">报销信息</div>
+        <div class="form-header">报销信息</div>
         <el-row :gutter="20">
           <el-col :span="8"><el-form-item label="报销编号"><el-input v-model="form.reimbursement.reimburseNo" disabled placeholder="保存后自动生成" /></el-form-item></el-col>
           <el-col :span="8"><el-form-item label="所属项目" prop="projId"><el-select v-model="form.reimbursement.projId" filterable clearable class="field-full" placeholder="请选择已立项项目" @change="handleProjectChange"><el-option v-for="item in projects" :key="item.projId" :label="item.projName" :value="item.projId" /></el-select></el-form-item></el-col>
@@ -22,7 +22,7 @@
       </div>
 
       <div class="form-panel">
-        <div class="section-title">发票附件</div>
+        <div class="form-header">发票附件</div>
         <el-form-item label="附件" prop="attachmentPaths"><file-upload v-model="attachmentPaths" :limit="8" :file-size="10" :file-type="['jpg','jpeg','png','pdf']" @input="markDirty" /></el-form-item>
       </div>
     </el-form>
@@ -75,7 +75,13 @@ export default {
     handleNodeChange(value) { const node = this.nodes.find(item => item.nodeId === value); this.form.reimbursement.nodeName = node ? node.nodeName : ''; this.markDirty() },
     handleCategoryChange(value) { const category = this.categories.find(item => item.categoryId === value); this.form.reimbursement.categoryName = category ? category.categoryName : ''; this.markDirty() },
     buildPayload() { const paths = this.attachmentPaths ? this.attachmentPaths.split(',').filter(Boolean) : []; return { reimbursement: Object.assign({}, this.form.reimbursement), attachments: paths.map(path => ({ fileName: path.substring(path.lastIndexOf('/') + 1), originalName: path.substring(path.lastIndexOf('/') + 1), filePath: path })) } },
-    saveDraft() { this.persistDraft().then(() => this.$modal.msgSuccess('保存成功')) },
+    saveDraft() {
+      this.persistDraft().then(() => this.$message.success('保存成功')).catch(error => {
+        if (!['invalid', 'attachment required'].includes(error.message)) {
+          this.$message.error('保存失败')
+        }
+      })
+    },
     persistDraft() {
       return new Promise((resolve, reject) => {
         this.$refs.form.validate(valid => {
@@ -91,8 +97,12 @@ export default {
       })
     },
     submit() {
-      const doSubmit = () => submitReimbursement(this.form.reimbursement.reimburseId).then(() => { this.$modal.msgSuccess('提交成功'); this.dirty = false; this.$router.push('/cost/reimbursement') })
-      this.dirty ? this.persistDraft().then(doSubmit) : doSubmit()
+      const doSubmit = () => submitReimbursement(this.form.reimbursement.reimburseId).then(() => { this.$message.success('提交成功'); this.dirty = false; this.$router.push('/cost/reimbursement') }).catch(() => this.$message.error('提交失败'))
+      this.dirty ? this.persistDraft().then(doSubmit).catch(error => {
+        if (!['invalid', 'attachment required'].includes(error.message)) {
+          this.$message.error('保存失败')
+        }
+      }) : doSubmit()
     },
     markDirty() { this.dirty = true },
     formatMoney
@@ -101,5 +111,105 @@ export default {
 </script>
 
 <style scoped>
-.page-heading,.form-panel,.footer-actions{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:18px 24px;margin-bottom:16px}.page-heading,.footer-actions{display:flex;justify-content:space-between;align-items:center}.page-heading h2{margin:0 0 6px;font-size:24px;color:#1f2937}.page-heading p{margin:0;color:#667085}.section-title{font-size:18px;font-weight:600;color:#1f2937;margin-bottom:18px;padding-left:10px;border-left:4px solid #1890ff}.field-full{width:100%}.amount-total{font-size:16px;color:#344054}.amount-total strong{font-size:22px;color:#1890ff}
+.reimbursement-form-page {
+  background: #f5f7fa;
+  min-height: calc(100vh - 84px);
+  padding-bottom: 76px;
+}
+
+.page-heading,
+.form-panel,
+.footer-actions {
+  background: #fff;
+  border: 1px solid #e6ebf2;
+  border-radius: 6px;
+}
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.page-heading h2 {
+  margin: 0 0 6px;
+  color: #1f2d3d;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.page-heading p {
+  margin: 0;
+  color: #8c98a8;
+  font-size: 13px;
+}
+
+.form-panel {
+  padding: 18px 20px 16px;
+  margin-bottom: 16px;
+}
+
+.form-header {
+  position: relative;
+  margin: 0 0 18px;
+  padding-bottom: 10px;
+  color: #1f2d3d;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-header::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 36px;
+  height: 3px;
+  content: '';
+  background: #1890ff;
+  border-radius: 2px;
+}
+
+.field-full {
+  width: 100%;
+}
+
+.footer-actions {
+  position: fixed;
+  right: 20px;
+  bottom: 18px;
+  left: 220px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 10px 18px;
+}
+
+.amount-total {
+  color: #606266;
+  font-size: 14px;
+}
+
+.amount-total strong {
+  color: #1f2d3d;
+  font-size: 18px;
+}
+
+@media (max-width: 992px) {
+  .footer-actions {
+    left: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-heading,
+  .footer-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
 </style>

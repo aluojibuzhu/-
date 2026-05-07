@@ -24,6 +24,12 @@
             <optional>true</optional> <!-- 表示依赖不会传递 -->
         </dependency>
 
+        <!-- Spring Boot 4 的 webmvc starter 不再隐式打包日志实现，运行 jar 需要显式提供 Logback -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+
         <!-- spring-doc -->
         <dependency>
             <groupId>org.springdoc</groupId>

@@ -25,6 +25,7 @@ import com.ruoyi.system.mapper.project.ProjWbsNodeMapper;
 import com.ruoyi.system.mapper.project.ReimbursementAttachmentMapper;
 import com.ruoyi.system.mapper.project.ReimbursementMapper;
 import com.ruoyi.system.mapper.project.SysCostCategoryMapper;
+import com.ruoyi.system.service.project.ICostApprovalService;
 import com.ruoyi.system.service.project.IReimbursementService;
 
 @Service
@@ -40,6 +41,8 @@ public class ReimbursementServiceImpl implements IReimbursementService
     private ProjWbsNodeMapper wbsNodeMapper;
     @Autowired
     private SysCostCategoryMapper categoryMapper;
+    @Autowired
+    private ICostApprovalService costApprovalService;
 
     public List<Reimbursement> selectReimbursementList(Reimbursement reimbursement)
     {
@@ -132,11 +135,7 @@ public class ReimbursementServiceImpl implements IReimbursementService
 
     public int postCost(Long reimburseId, String username)
     {
-        Reimbursement reimbursement = reimbursementMapper.selectReimbursementById(reimburseId);
-        ReimbursementStatus.require(reimbursement, ReimbursementStatus.APPROVED);
-        reimbursement.setStatus(ReimbursementStatus.POSTED.code());
-        reimbursement.setUpdateBy(username);
-        return reimbursementMapper.updateReimbursement(reimbursement);
+        return costApprovalService.postApproved(CostApprovalServiceImpl.BILL_TYPE_REIMBURSEMENT, reimburseId, username);
     }
 
     public int deleteReimbursementById(Long reimburseId)

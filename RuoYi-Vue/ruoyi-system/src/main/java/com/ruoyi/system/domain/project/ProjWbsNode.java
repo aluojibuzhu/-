@@ -15,6 +15,7 @@ public class ProjWbsNode extends BaseEntity
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date planFinishDate;
     private BigDecimal nodeBudget;
+    private BigDecimal actualCost;
     private Integer orderNum;
     public Long getNodeId() { return nodeId; }
     public void setNodeId(Long nodeId) { this.nodeId = nodeId; }
@@ -28,7 +29,8 @@ public class ProjWbsNode extends BaseEntity
     public void setPlanFinishDate(Date planFinishDate) { this.planFinishDate = planFinishDate; }
     public BigDecimal getNodeBudget() { return nodeBudget; }
     public void setNodeBudget(BigDecimal nodeBudget) { this.nodeBudget = nodeBudget; }
+    public BigDecimal getActualCost() { return actualCost; }
+    public void setActualCost(BigDecimal actualCost) { this.actualCost = actualCost; }
     public Integer getOrderNum() { return orderNum; }
     public void setOrderNum(Integer orderNum) { this.orderNum = orderNum; }
 }
-

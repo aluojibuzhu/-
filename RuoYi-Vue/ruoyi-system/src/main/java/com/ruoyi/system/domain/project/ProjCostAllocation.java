@@ -12,6 +12,7 @@ public class ProjCostAllocation extends BaseEntity
     private Long categoryId;
     private String categoryName;
     private BigDecimal allocationAmount;
+    private BigDecimal actualCost;
     public Long getAllocationId() { return allocationId; }
     public void setAllocationId(Long allocationId) { this.allocationId = allocationId; }
     public Long getProjId() { return projId; }
@@ -24,5 +25,6 @@ public class ProjCostAllocation extends BaseEntity
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public BigDecimal getAllocationAmount() { return allocationAmount; }
     public void setAllocationAmount(BigDecimal allocationAmount) { this.allocationAmount = allocationAmount; }
+    public BigDecimal getActualCost() { return actualCost; }
+    public void setActualCost(BigDecimal actualCost) { this.actualCost = actualCost; }
 }
-

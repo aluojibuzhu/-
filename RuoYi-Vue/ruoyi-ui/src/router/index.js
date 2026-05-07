@@ -169,6 +169,20 @@ export const dynamicRoutes = [
     ]
   },
   {
+    path: '/project/projInfo/form',
+    component: Layout,
+    hidden: true,
+    permissions: ['project:projInfo:add'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/project/projInfo/form'),
+        name: 'ProjInfoForm',
+        meta: { title: '项目立项表单', activeMenu: '/project/projInfo' }
+      }
+    ]
+  },
+  {
     path: '/project/projInfo/detail',
     component: Layout,
     hidden: true,
@@ -183,6 +197,20 @@ export const dynamicRoutes = [
     ]
   },
   {
+    path: '/cost/workHour/form',
+    component: Layout,
+    hidden: true,
+    permissions: ['cost:workHour:add'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/project/workHour/form'),
+        name: 'WorkHourForm',
+        meta: { title: '工时填报表单', activeMenu: '/cost/workHour' }
+      }
+    ]
+  },
+  {
     path: '/cost/workHour/detail',
     component: Layout,
     hidden: true,
@@ -193,6 +221,20 @@ export const dynamicRoutes = [
         component: () => import('@/views/project/workHour/detail'),
         name: 'WorkHourDetail',
         meta: { title: '工时详情', activeMenu: '/cost/workHour' }
+      }
+    ]
+  },
+  {
+    path: '/cost/reimbursement/form',
+    component: Layout,
+    hidden: true,
+    permissions: ['cost:reimbursement:add'],
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/project/reimbursement/form'),
+        name: 'ReimbursementForm',
+        meta: { title: '报销申请表单', activeMenu: '/cost/reimbursement' }
       }
     ]
   },

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.CostApprovalMapper">
+  <resultMap id="CostApprovalBillResult" type="com.ruoyi.system.domain.project.CostApprovalBill">
+    <result property="billType" column="bill_type"/>
+    <result property="billId" column="bill_id"/>
+    <result property="billNo" column="bill_no"/>
+    <result property="projId" column="proj_id"/>
+    <result property="projName" column="proj_name"/>
+    <result property="nodeId" column="node_id"/>
+    <result property="nodeName" column="node_name"/>
+    <result property="categoryId" column="category_id"/>
+    <result property="categoryName" column="category_name"/>
+    <result property="amount" column="amount"/>
+    <result property="workHours" column="work_hours"/>
+    <result property="expenseType" column="expense_type"/>
+    <result property="status" column="status"/>
+    <result property="submitTime" column="submit_time"/>
+    <result property="applicant" column="applicant"/>
+    <result property="postTime" column="post_time"/>
+  </resultMap>
+
+  <sql id="approvalUnion">
+    select 'WORK_HOUR' as bill_type, wh_id as bill_id, wh_no as bill_no, proj_id, proj_name, node_id, node_name,
+           category_id, category_name, work_cost as amount, work_hours, null as expense_type, status, submit_time,
+           create_by as applicant, approve_time as post_time
+    from wh_work_hour
+    where del_flag = '0' and status in ('1', '2', '4')
+    union all
+    select 'REIMBURSEMENT' as bill_type, reimburse_id as bill_id, reimburse_no as bill_no, proj_id, proj_name, node_id, node_name,
+           category_id, category_name, amount, null as work_hours, expense_type, status, submit_time,
+           create_by as applicant, approve_time as post_time
+    from exp_reimbursement
+    where del_flag = '0' and status in ('1', '2', '4')
+  </sql>
+
+  <select id="selectApprovalBillList" parameterType="com.ruoyi.system.domain.project.CostApprovalBill" resultMap="CostApprovalBillResult">
+    select * from (
+      <include refid="approvalUnion"/>
+    ) t
+    where 1 = 1
+    <if test="billType != null and billType != ''">and bill_type = #{billType}</if>
+    <if test="billNo != null and billNo != ''">and bill_no like concat('%', #{billNo}, '%')</if>
+    <if test="projId != null">and proj_id = #{projId}</if>
+    <if test="status != null and status != ''">and status = #{status}</if>
+    <if test="beginSubmitTime != null and beginSubmitTime != ''">and submit_time &gt;= concat(#{beginSubmitTime}, ' 00:00:00')</if>
+    <if test="endSubmitTime != null and endSubmitTime != ''">and submit_time &lt;= concat(#{endSubmitTime}, ' 23:59:59')</if>
+    order by submit_time desc, bill_id desc
+  </select>
+
+  <select id="selectSummary" resultType="com.ruoyi.system.domain.vo.project.CostApprovalSummaryVO">
+    select
+      sum(case when status = '1' then 1 else 0 end) as pendingCount,
+      sum(case when status = '2' then 1 else 0 end) as approvedCount,
+      sum(case when status = '4' then 1 else 0 end) as postedCount,
+      ifnull(sum(case when status = '1' then amount else 0 end), 0) as pendingAmount
+    from (
+      <include refid="approvalUnion"/>
+    ) t
+  </select>
+
+  <insert id="insertPostingRecord" parameterType="com.ruoyi.system.domain.project.CostPostingRecord" useGeneratedKeys="true" keyProperty="recordId">
+    insert into cost_posting_record(bill_type, bill_id, bill_no, proj_id, proj_name, node_id, node_name, category_id, category_name, amount, post_by, post_time, create_by, create_time)
+    values(#{billType}, #{billId}, #{billNo}, #{projId}, #{projName}, #{nodeId}, #{nodeName}, #{categoryId}, #{categoryName}, #{amount}, #{postBy}, #{postTime}, #{createBy}, now())
+  </insert>
+
+  <select id="existsPostingRecord" resultType="int">
+    select count(1) from cost_posting_record where bill_type = #{billType} and bill_id = #{billId}
+  </select>
+</mapper>

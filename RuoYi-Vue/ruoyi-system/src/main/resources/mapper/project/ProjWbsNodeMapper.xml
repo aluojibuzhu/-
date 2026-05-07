@@ -8,10 +8,12 @@
     <result property="nodeName" column="node_name"/>
     <result property="planFinishDate" column="plan_finish_date"/>
     <result property="nodeBudget" column="node_budget"/>
+    <result property="actualCost" column="actual_cost"/>
     <result property="orderNum" column="order_num"/>
   </resultMap>
   <select id="selectByProjId" resultMap="ProjWbsNodeResult">select * from proj_wbs_node where proj_id = #{projId} and del_flag = '0' order by order_num asc</select>
   <select id="selectByNodeId" resultMap="ProjWbsNodeResult">select * from proj_wbs_node where node_id = #{nodeId} and del_flag = '0'</select>
   <insert id="insertProjWbsNode" parameterType="com.ruoyi.system.domain.project.ProjWbsNode" useGeneratedKeys="true" keyProperty="nodeId">insert into proj_wbs_node(proj_id,node_no,node_name,plan_finish_date,node_budget,order_num,create_by,create_time,update_by,update_time) values(#{projId},#{nodeNo},#{nodeName},#{planFinishDate},#{nodeBudget},#{orderNum},#{createBy},now(),#{updateBy},now())</insert>
   <delete id="deleteByProjId">delete from proj_wbs_node where proj_id=#{projId}</delete>
+  <update id="increaseActualCost">update proj_wbs_node set actual_cost = ifnull(actual_cost, 0) + #{amount}, update_by=#{username}, update_time=now() where node_id=#{nodeId} and del_flag='0'</update>
 </mapper>
