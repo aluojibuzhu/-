@@ -64,17 +64,24 @@ public class CostApprovalServiceImpl implements ICostApprovalService
             workHour.setApproveBy(username);
             workHour.setApproveTime(new Date());
             workHour.setUpdateBy(username);
+            ensureUpdated(workHourMapper.updateWorkHourIfStatus(workHour, WorkHourStatus.PENDING.code()));
             postCost(toRecord(workHour, username));
-            return workHourMapper.updateWorkHour(workHour);
+            return 1;
         }
-        Reimbursement reimbursement = getReimbursementForType(billType, billId);
-        ReimbursementStatus.require(reimbursement, ReimbursementStatus.PENDING);
-        reimbursement.setStatus(ReimbursementStatus.POSTED.code());
-        reimbursement.setApproveBy(username);
-        reimbursement.setApproveTime(new Date());
-        reimbursement.setUpdateBy(username);
-        postCost(toRecord(reimbursement, username));
-        return reimbursementMapper.updateReimbursement(reimbursement);
+        if (BILL_TYPE_REIMBURSEMENT.equals(billType))
+        {
+            Reimbursement reimbursement = reimbursementMapper.selectReimbursementById(billId);
+            ReimbursementStatus.require(reimbursement, ReimbursementStatus.PENDING);
+            reimbursement.setStatus(ReimbursementStatus.POSTED.code());
+            reimbursement.setApproveBy(username);
+            reimbursement.setApproveTime(new Date());
+            reimbursement.setUpdateBy(username);
+            ensureUpdated(reimbursementMapper.updateReimbursementIfStatus(reimbursement, ReimbursementStatus.PENDING.code()));
+            postCost(toRecord(reimbursement, username));
+            return 1;
+        }
+        throwUnsupportedBillType(billType);
+        return 0;
     }
 
     @Transactional
@@ -93,16 +100,23 @@ public class CostApprovalServiceImpl implements ICostApprovalService
             workHour.setApproveBy(username);
             workHour.setApproveTime(new Date());
             workHour.setUpdateBy(username);
-            return workHourMapper.updateWorkHour(workHour);
+            ensureUpdated(workHourMapper.updateWorkHourIfStatus(workHour, WorkHourStatus.PENDING.code()));
+            return 1;
         }
-        Reimbursement reimbursement = getReimbursementForType(billType, billId);
-        ReimbursementStatus.require(reimbursement, ReimbursementStatus.PENDING);
-        reimbursement.setStatus(ReimbursementStatus.REJECTED.code());
-        reimbursement.setRejectReason(reason);
-        reimbursement.setApproveBy(username);
-        reimbursement.setApproveTime(new Date());
-        reimbursement.setUpdateBy(username);
-        return reimbursementMapper.updateReimbursement(reimbursement);
+        if (BILL_TYPE_REIMBURSEMENT.equals(billType))
+        {
+            Reimbursement reimbursement = reimbursementMapper.selectReimbursementById(billId);
+            ReimbursementStatus.require(reimbursement, ReimbursementStatus.PENDING);
+            reimbursement.setStatus(ReimbursementStatus.REJECTED.code());
+            reimbursement.setRejectReason(reason);
+            reimbursement.setApproveBy(username);
+            reimbursement.setApproveTime(new Date());
+            reimbursement.setUpdateBy(username);
+            ensureUpdated(reimbursementMapper.updateReimbursementIfStatus(reimbursement, ReimbursementStatus.PENDING.code()));
+            return 1;
+        }
+        throwUnsupportedBillType(billType);
+        return 0;
     }
 
     @Transactional
@@ -114,24 +128,35 @@ public class CostApprovalServiceImpl implements ICostApprovalService
             WorkHourStatus.require(workHour, WorkHourStatus.APPROVED);
             workHour.setStatus(WorkHourStatus.POSTED.code());
             workHour.setUpdateBy(username);
+            ensureUpdated(workHourMapper.updateWorkHourIfStatus(workHour, WorkHourStatus.APPROVED.code()));
             postCost(toRecord(workHour, username));
-            return workHourMapper.updateWorkHour(workHour);
+            return 1;
         }
-        Reimbursement reimbursement = getReimbursementForType(billType, billId);
-        ReimbursementStatus.require(reimbursement, ReimbursementStatus.APPROVED);
-        reimbursement.setStatus(ReimbursementStatus.POSTED.code());
-        reimbursement.setUpdateBy(username);
-        postCost(toRecord(reimbursement, username));
-        return reimbursementMapper.updateReimbursement(reimbursement);
+        if (BILL_TYPE_REIMBURSEMENT.equals(billType))
+        {
+            Reimbursement reimbursement = reimbursementMapper.selectReimbursementById(billId);
+            ReimbursementStatus.require(reimbursement, ReimbursementStatus.APPROVED);
+            reimbursement.setStatus(ReimbursementStatus.POSTED.code());
+            reimbursement.setUpdateBy(username);
+            ensureUpdated(reimbursementMapper.updateReimbursementIfStatus(reimbursement, ReimbursementStatus.APPROVED.code()));
+            postCost(toRecord(reimbursement, username));
+            return 1;
+        }
+        throwUnsupportedBillType(billType);
+        return 0;
     }
 
-    private Reimbursement getReimbursementForType(String billType, Long billId)
+    private void throwUnsupportedBillType(String billType)
     {
-        if (!BILL_TYPE_REIMBURSEMENT.equals(billType))
+        throw new ServiceException("不支持的单据类型: " + billType);
+    }
+
+    private void ensureUpdated(int rows)
+    {
+        if (rows == 0)
         {
-            throw new ServiceException("不支持的单据类型");
+            throw new ServiceException("单据状态已变化，请刷新后重试");
         }
-        return reimbursementMapper.selectReimbursementById(billId);
     }
 
     private void postCost(CostPostingRecord record)
@@ -141,10 +166,18 @@ public class CostApprovalServiceImpl implements ICostApprovalService
             throw new ServiceException("该单据已入账");
         }
         BigDecimal amount = record.getAmount() == null ? BigDecimal.ZERO : record.getAmount();
-        projInfoMapper.increaseActualCost(record.getProjId(), amount, record.getPostBy());
-        wbsNodeMapper.increaseActualCost(record.getNodeId(), amount, record.getPostBy());
-        allocationMapper.increaseActualCost(record.getProjId(), record.getNodeId(), record.getCategoryId(), amount, record.getPostBy());
+        ensureCostUpdated(projInfoMapper.increaseActualCost(record.getProjId(), amount, record.getPostBy()), "项目预算");
+        ensureCostUpdated(wbsNodeMapper.increaseActualCost(record.getNodeId(), amount, record.getPostBy()), "WBS节点预算");
+        ensureCostUpdated(allocationMapper.increaseActualCost(record.getProjId(), record.getNodeId(), record.getCategoryId(), amount, record.getPostBy()), "成本科目预算分配");
         costApprovalMapper.insertPostingRecord(record);
+    }
+
+    private void ensureCostUpdated(int rows, String target)
+    {
+        if (rows == 0)
+        {
+            throw new ServiceException(target + "记录不存在或已删除，无法入账");
+        }
     }
 
     private CostPostingRecord toRecord(WorkHour workHour, String username)

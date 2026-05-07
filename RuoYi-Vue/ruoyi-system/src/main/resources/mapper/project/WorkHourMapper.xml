@@ -56,6 +56,12 @@
     where wh_id=#{whId}
   </update>
 
+  <update id="updateWorkHourIfStatus">
+    update wh_work_hour
+    set wh_no=#{workHour.whNo}, proj_id=#{workHour.projId}, proj_name=#{workHour.projName}, node_id=#{workHour.nodeId}, node_name=#{workHour.nodeName}, category_id=#{workHour.categoryId}, category_name=#{workHour.categoryName}, work_type=#{workHour.workType}, work_date=#{workHour.workDate}, work_hours=#{workHour.workHours}, unit_price=#{workHour.unitPrice}, work_cost=#{workHour.workCost}, work_desc=#{workHour.workDesc}, status=#{workHour.status}, submit_time=#{workHour.submitTime}, approve_by=#{workHour.approveBy}, approve_time=#{workHour.approveTime}, reject_reason=#{workHour.rejectReason}, update_by=#{workHour.updateBy}, update_time=now(), remark=#{workHour.remark}
+    where wh_id=#{workHour.whId} and status=#{expectedStatus} and del_flag='0'
+  </update>
+
   <update id="deleteWorkHourById">
     update wh_work_hour set del_flag = '1' where wh_id = #{whId}
   </update>

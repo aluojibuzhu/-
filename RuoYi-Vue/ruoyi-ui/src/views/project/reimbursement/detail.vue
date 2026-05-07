@@ -77,8 +77,9 @@ export default {
       }).catch(() => this.$message.error('审批失败')).finally(() => { this.submitting = false })
     },
     rejectIt() {
+      if (this.submitting) return
+      this.submitting = true
       this.$prompt('请输入驳回原因', '驳回报销申请', { inputType: 'textarea', inputValidator: v => !!v || '请填写驳回原因' }).then(({ value }) => {
-        this.submitting = true
         return rejectReimbursement(this.form.reimbursement.reimburseId, { rejectReason: value })
       }).then(() => {
         this.$message.success('已驳回')

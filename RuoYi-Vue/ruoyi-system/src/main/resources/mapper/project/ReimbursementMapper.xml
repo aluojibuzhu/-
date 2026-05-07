@@ -56,6 +56,12 @@
     where reimburse_id=#{reimburseId}
   </update>
 
+  <update id="updateReimbursementIfStatus">
+    update exp_reimbursement
+    set reimburse_no=#{reimbursement.reimburseNo}, proj_id=#{reimbursement.projId}, proj_name=#{reimbursement.projName}, node_id=#{reimbursement.nodeId}, node_name=#{reimbursement.nodeName}, category_id=#{reimbursement.categoryId}, category_name=#{reimbursement.categoryName}, expense_type=#{reimbursement.expenseType}, expense_date=#{reimbursement.expenseDate}, amount=#{reimbursement.amount}, expense_desc=#{reimbursement.expenseDesc}, invoice_count=#{reimbursement.invoiceCount}, status=#{reimbursement.status}, submit_time=#{reimbursement.submitTime}, approve_by=#{reimbursement.approveBy}, approve_time=#{reimbursement.approveTime}, reject_reason=#{reimbursement.rejectReason}, update_by=#{reimbursement.updateBy}, update_time=now(), remark=#{reimbursement.remark}
+    where reimburse_id=#{reimbursement.reimburseId} and status=#{expectedStatus} and del_flag='0'
+  </update>
+
   <update id="deleteReimbursementById">
     update exp_reimbursement set del_flag = '1' where reimburse_id = #{reimburseId}
   </update>

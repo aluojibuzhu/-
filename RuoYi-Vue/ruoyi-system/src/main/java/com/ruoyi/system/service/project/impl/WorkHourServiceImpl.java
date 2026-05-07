@@ -163,6 +163,10 @@ public class WorkHourServiceImpl implements IWorkHourService
             throw new ServiceException("请选择有效成本科目");
         }
         SysCostCategory laborCategory = categoryMapper.selectRootCategoryByName(LABOR_CATEGORY_NAME);
+        if (category.getCategoryLevel() == null || category.getCategoryLevel() != 2)
+        {
+            throw new ServiceException("请选择二级人工费类科目");
+        }
         if (laborCategory == null || category.getParentId() == null || !category.getParentId().equals(laborCategory.getCategoryId()))
         {
             throw new ServiceException("请选择人工费类科目");

@@ -79,10 +79,10 @@
           <template slot-scope="scope">
             <el-button type="text" icon="el-icon-view" @click="handleDetail(scope.row)">详情</el-button>
             <template v-if="scope.row.status === '1'">
-              <el-button type="text" icon="el-icon-check" @click="handleApprove(scope.row)" v-hasPermi="['cost:approval:approve']">通过入账</el-button>
-              <el-button type="text" icon="el-icon-close" class="danger-action" @click="handleReject(scope.row)" v-hasPermi="['cost:approval:approve']">驳回</el-button>
+              <el-button type="text" icon="el-icon-check" :loading="submitting" :disabled="submitting" @click="handleApprove(scope.row)" v-hasPermi="['cost:approval:approve']">通过入账</el-button>
+              <el-button type="text" icon="el-icon-close" class="danger-action" :loading="submitting" :disabled="submitting" @click="handleReject(scope.row)" v-hasPermi="['cost:approval:approve']">驳回</el-button>
             </template>
-            <el-button v-if="scope.row.status === '2'" type="text" icon="el-icon-finished" @click="handlePost(scope.row)" v-hasPermi="['cost:approval:post']">入账</el-button>
+            <el-button v-if="scope.row.status === '2'" type="text" icon="el-icon-finished" :loading="submitting" :disabled="submitting" @click="handlePost(scope.row)" v-hasPermi="['cost:approval:post']">入账</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -102,6 +102,7 @@ export default {
   data() {
     return {
       loading: false,
+      submitting: false,
       list: [],
       total: 0,
       projects: [],
@@ -157,14 +158,18 @@ export default {
       }
     },
     handleApprove(row) {
+      if (this.submitting) return
       this.$modal.confirm('确认审批通过并入账单据 ' + row.billNo + ' 吗？').then(() => {
+        this.submitting = true
         approveAndPostBill(row.billType, row.billId).then(() => {
           this.$message.success('审批入账成功')
           this.handleQuery()
-        }).catch(() => this.$message.error('审批入账失败'))
+        }).catch(() => this.$message.error('审批入账失败')).finally(() => { this.submitting = false })
       }).catch(() => {})
     },
     handleReject(row) {
+      if (this.submitting) return
+      this.submitting = true
       this.$prompt('请输入驳回原因', '驳回成本单据', {
         inputType: 'textarea',
         inputValidator: value => !!value || '请填写驳回原因'
@@ -177,14 +182,18 @@ export default {
         if (error !== 'cancel') {
           this.$message.error('驳回失败')
         }
+      }).finally(() => {
+        this.submitting = false
       })
     },
     handlePost(row) {
+      if (this.submitting) return
       this.$modal.confirm('确认入账单据 ' + row.billNo + ' 吗？').then(() => {
+        this.submitting = true
         postApprovedBill(row.billType, row.billId).then(() => {
           this.$message.success('入账成功')
           this.handleQuery()
-        }).catch(() => this.$message.error('入账失败'))
+        }).catch(() => this.$message.error('入账失败')).finally(() => { this.submitting = false })
       }).catch(() => {})
     },
     billTypeLabel(type) {

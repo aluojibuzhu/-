@@ -124,13 +124,14 @@ export default {
       })
     },
     rejectIt() {
+      if (this.submitting) return
+      this.submitting = true
       this.$prompt('请输入驳回原因', '驳回工时单', {
         confirmButtonText: '确认',
         cancelButtonText: '取消',
         inputValidator: value => !!value,
         inputErrorMessage: '驳回原因不能为空'
       }).then(({ value }) => {
-        this.submitting = true
         return rejectWorkHour(this.form.workHour.whId, { rejectReason: value })
       }).then(() => {
         this.$message.success('已驳回')
