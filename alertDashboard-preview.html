@@ -1,0 +1,433 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>预警看板 - 效果预览</title>
+<style>
+  :root {
+    --bg-page: #f5f7fa;
+    --bg-card: #ffffff;
+    --text-primary: #1f2d3d;
+    --text-regular: #606266;
+    --text-secondary: #8c98a8;
+    --color-primary: #1890ff;
+    --color-danger: #dc2626;
+    --color-warning: #f97316;
+    --color-yellow: #ca8a04;
+    --color-success: #16a34a;
+    --border-subtle: #e6ebf2;
+    --chart-color: rgba(24,144,255,.78);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 1440px; margin: 0 auto; padding: 28px 40px; }
+
+  .page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 0;
+    margin-bottom: 28px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+  .page-heading h2 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: 0.2px; }
+  .page-heading p { color: var(--text-secondary); font-size: 13px; max-width: 640px; }
+  .btn-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border: 1px solid #d9e1ec;
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text-regular);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .16s ease;
+  }
+  .btn-refresh:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  .summary-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .summary-card {
+    min-height: auto;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+  .summary-card .label { display: block; margin-bottom: 2px; font-size: 13px; color: var(--text-secondary); }
+  .summary-card .value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.1; }
+  .summary-card .value.red { color: var(--color-danger); }
+  .summary-card .value.orange { color: var(--color-warning); }
+  .summary-card .value.yellow { color: var(--color-yellow); }
+  .summary-card .trend { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 12px; }
+  .summary-card .trend.up { color: var(--color-danger); }
+  .summary-card .trend.down { color: var(--color-success); }
+
+  .chart-row { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, .95fr); gap: 16px; margin-bottom: 16px; }
+  .detail-card,
+  .table-card {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+  .detail-card { min-height: 414px; display: flex; flex-direction: column; }
+  .card-title { position: relative; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .card-title::after { display: none; }
+  .card-subtitle { margin-left: 8px; font-size: 12px; color: var(--text-secondary); font-weight: 400; }
+  .card-body { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 320px; }
+  .chart-footer {
+    min-height: 66px;
+    margin-top: 8px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .chart-footer-title {
+    min-height: 22px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 22px;
+    text-align: center;
+  }
+  .chart-footer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    height: 34px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+    overflow: hidden;
+  }
+
+  .line-chart-container { width: 100%; height: 100%; display: flex; align-items: center; }
+  .line-chart-svg { width: 100%; display: block; overflow: visible; }
+  .pie-area { display: flex; align-items: center; justify-content: center; width: 100%; }
+  .pie-svg { width: 230px; height: 230px; }
+
+  .date-picker-inline { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
+  .date-input {
+    height: 24px;
+    padding: 2px 5px;
+    border: 1px solid #d9e1ec;
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-primary);
+    background: #fff;
+    font-family: inherit;
+  }
+  .date-input:focus { border-color: var(--color-primary); outline: none; }
+
+  .color-palette { display: inline-flex; align-items: center; gap: 7px; }
+  .color-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--c);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform .16s ease;
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.active { border-color: #fff; box-shadow: 0 0 0 2px var(--text-primary); }
+
+  .legend-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    height: 34px;
+    flex-wrap: wrap;
+    overflow: hidden;
+  }
+  .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .legend-item { font-size: 12px; color: var(--text-secondary); line-height: 22px; white-space: nowrap; }
+
+  .table-card { overflow: hidden; }
+  .table-title-wrap { margin-bottom: 16px; }
+  .table-title-wrap .card-title::after { display: none; }
+  .selected-label {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 12px;
+    color: rgba(24,144,255,.9);
+    font-weight: 400;
+  }
+  .health-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .health-table th {
+    text-align: center;
+    padding: 10px 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .health-table th:first-child { text-align: left; border-radius: 5px 0 0 0; }
+  .health-table th:last-child { text-align: right; border-radius: 0 5px 0 0; }
+  .health-table td {
+    padding: 12px;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f4f8;
+    cursor: pointer;
+    transition: background .14s ease;
+  }
+  .health-table tr:last-child td { border-bottom: 0; }
+  .health-table tbody tr:hover { background: #f8fbff; }
+  .health-table tbody tr.selected { background: #eef6ff; outline: 1px solid rgba(24,144,255,.35); outline-offset: -1px; }
+  .health-table .h-name { text-align: left; font-weight: 500; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .health-table .h-bar { width: 120px; }
+  .mini-bar { width: 100%; height: 6px; background: #eef2f7; border-radius: 999px; overflow: hidden; }
+  .mini-fill { height: 100%; border-radius: 999px; }
+  .health-table .h-count { font-weight: 600; }
+  .health-table .h-count.red { color: var(--color-danger); }
+  .health-table .h-count.orange { color: var(--color-warning); }
+  .health-table .h-count.yellow { color: var(--color-yellow); }
+  .health-table .h-sum { font-weight: 700; }
+  .health-table .h-amount { text-align: right; color: var(--text-secondary); font-size: 12px; }
+
+  .table-badge { display: inline-block; min-width: 54px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .table-badge.danger { background: #fef2f2; color: #dc2626; }
+  .table-badge.warning { background: #fff7ed; color: #ea580c; }
+  .table-badge.success { background: #f0fdf4; color: #16a34a; }
+
+  @media (max-width: 1180px) {
+    .summary-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .chart-row { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .page-heading { flex-direction: column; align-items: stretch; }
+    .summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .chart-footer,
+    .chart-footer-meta,
+    .legend-list {
+      height: auto;
+      min-height: 34px;
+      overflow: visible;
+    }
+    .health-table { min-width: 780px; }
+    .table-card { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="page-heading">
+    <div>
+      <h2>预警看板</h2>
+      <p>聚合项目预算执行、预警等级和成本变化趋势，辅助快速识别风险项目。</p>
+    </div>
+    <button class="btn-refresh" type="button">&#x21bb; 刷新数据</button>
+  </div>
+
+  <div class="summary-row">
+    <div class="summary-card"><span class="label">累计预警</span><div class="value">127</div><div class="trend up">&#x2191; 12 较上月</div></div>
+    <div class="summary-card"><span class="label">活跃预警</span><div class="value">43</div><div class="trend down">&#x2193; 8 较上月</div></div>
+    <div class="summary-card"><span class="label">红色预警</span><div class="value red">12</div></div>
+    <div class="summary-card"><span class="label">橙色预警</span><div class="value orange">18</div></div>
+    <div class="summary-card"><span class="label">黄色预警</span><div class="value yellow">13</div></div>
+    <div class="summary-card"><span class="label">今日新增</span><div class="value">5</div></div>
+  </div>
+
+  <div class="chart-row">
+    <div class="detail-card">
+      <div class="card-body">
+        <div class="line-chart-container">
+          <svg class="line-chart-svg" viewBox="0 0 700 340" aria-label="成本入账趋势折线图">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#1890ff" stop-opacity="0.13"/>
+                <stop offset="100%" stop-color="#1890ff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="52" y1="300" x2="682" y2="300" stroke="#eef2f7" stroke-width="1"/>
+            <line x1="52" y1="225" x2="682" y2="225" stroke="#eef2f7" stroke-width="1" stroke-dasharray="4 3"/>
+            <line x1="52" y1="150" x2="682" y2="150" stroke="#eef2f7" stroke-width="1" stroke-dasharray="4 3"/>
+            <line x1="52" y1="75" x2="682" y2="75" stroke="#eef2f7" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="46" y="304" text-anchor="end" fill="#8c98a8" font-size="10">0</text>
+            <text id="yTick1" x="46" y="229" text-anchor="end" fill="#8c98a8" font-size="10">40万</text>
+            <text id="yTick2" x="46" y="154" text-anchor="end" fill="#8c98a8" font-size="10">80万</text>
+            <text id="yTick3" x="46" y="79" text-anchor="end" fill="#8c98a8" font-size="10">120万</text>
+            <polygon id="areaPath" points="" fill="url(#areaGrad)"/>
+            <polyline id="linePath" points="" fill="none" stroke="var(--chart-color)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <g id="pointLayer"></g>
+          </svg>
+        </div>
+      </div>
+      <div class="chart-footer">
+        <div class="chart-footer-title" id="trendTitle">成本入账趋势 - 全部项目</div>
+        <div class="chart-footer-meta">
+          <span class="date-picker-inline">
+            <input type="date" class="date-input" value="2026-04-08"> ~
+            <input type="date" class="date-input" value="2026-05-07">
+          </span>
+          <span class="color-palette" aria-label="折线颜色">
+            <span class="color-dot active" style="--c:rgba(24,144,255,.78)" onclick="setChartColor('rgba(24,144,255,.78)',this)"></span>
+            <span class="color-dot" style="--c:rgba(16,185,129,.70)" onclick="setChartColor('rgba(16,185,129,.70)',this)"></span>
+            <span class="color-dot" style="--c:rgba(249,115,22,.72)" onclick="setChartColor('rgba(249,115,22,.72)',this)"></span>
+            <span class="color-dot" style="--c:rgba(220,38,38,.70)" onclick="setChartColor('rgba(220,38,38,.70)',this)"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-card">
+      <div class="card-body">
+        <div class="pie-area">
+          <svg class="pie-svg" viewBox="0 0 200 200" aria-label="成本科目占比环形图">
+            <g id="pieSegments"></g>
+            <circle cx="100" cy="100" r="56" fill="#fff"/>
+            <text x="100" y="97" text-anchor="middle" fill="#8c98a8" font-size="11">总成本</text>
+            <text x="100" y="115" text-anchor="middle" fill="#1f2d3d" font-size="16" font-weight="700" id="pieCenter">386万</text>
+          </svg>
+        </div>
+      </div>
+      <div class="chart-footer">
+        <div class="chart-footer-title" id="pieTitle">成本科目占比 - 全部项目</div>
+        <div class="chart-footer-meta">
+          <div class="legend-list" id="pieLegend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-title-wrap">
+      <div class="card-title">项目预算健康度<span class="card-subtitle">点击项目查看对应图表数据</span><span class="selected-label" id="selLabel"></span></div>
+    </div>
+    <table class="health-table">
+      <thead>
+        <tr><th>项目名称</th><th>执行率</th><th>进度</th><th>红</th><th>橙</th><th>黄</th><th>活跃预警</th><th>预算金额</th></tr>
+      </thead>
+      <tbody id="projectTableBody">
+        <tr onclick="selectProject(this)" data-name="某高新区产业园基础设施" data-trend="102,96,88,94,99,105,110,108,104,100,103,106,102" data-pie="120,55,40,35,20" data-pietotal="270万">
+          <td class="h-name">某高新区产业园基础设施</td><td><span class="table-badge danger">102%</span></td><td class="h-bar"><div class="mini-bar"><div class="mini-fill" style="width:100%;background:#dc2626;"></div></div></td><td class="h-count red">5</td><td class="h-count orange">4</td><td class="h-count yellow">1</td><td class="h-sum">10</td><td class="h-amount">4,200.00万</td>
+        </tr>
+        <tr onclick="selectProject(this)" data-name="某市轨道交通 1 号线一期工程" data-trend="60,65,70,68,72,75,82,78,85,80,90,88,86" data-pie="90,55,30,25,15" data-pietotal="215万">
+          <td class="h-name">某市轨道交通 1 号线一期工程</td><td><span class="table-badge warning">96%</span></td><td class="h-bar"><div class="mini-bar"><div class="mini-fill" style="width:96%;background:#f97316;"></div></div></td><td class="h-count red">3</td><td class="h-count orange">5</td><td class="h-count yellow">2</td><td class="h-sum">10</td><td class="h-amount">2,860.00万</td>
+        </tr>
+        <tr onclick="selectProject(this)" data-name="某市第三水厂建设工程" data-trend="40,42,45,48,52,50,55,58,54,60,56,62,60" data-pie="70,40,25,18,12" data-pietotal="165万">
+          <td class="h-name">某市第三水厂建设工程</td><td><span class="table-badge warning">88%</span></td><td class="h-bar"><div class="mini-bar"><div class="mini-fill" style="width:88%;background:#eab308;"></div></div></td><td class="h-count red">1</td><td class="h-count orange">3</td><td class="h-count yellow">4</td><td class="h-sum">8</td><td class="h-amount">1,520.00万</td>
+        </tr>
+        <tr onclick="selectProject(this)" data-name="某区市政道路改造项目" data-trend="25,30,28,34,32,36,38,35,40,42,38,44,42" data-pie="55,30,20,15,8" data-pietotal="128万">
+          <td class="h-name">某区市政道路改造项目</td><td><span class="table-badge success">75%</span></td><td class="h-bar"><div class="mini-bar"><div class="mini-fill" style="width:75%;background:#16a34a;"></div></div></td><td class="h-count red">0</td><td class="h-count orange">1</td><td class="h-count yellow">2</td><td class="h-sum">3</td><td class="h-amount">890.20万</td>
+        </tr>
+        <tr onclick="selectProject(this)" data-name="某新区综合管廊工程" data-trend="15,18,20,22,25,28,30,26,32,35,30,38,34" data-pie="48,22,18,10,6" data-pietotal="104万">
+          <td class="h-name">某新区综合管廊工程</td><td><span class="table-badge success">68%</span></td><td class="h-bar"><div class="mini-bar"><div class="mini-fill" style="width:68%;background:#16a34a;"></div></div></td><td class="h-count red">1</td><td class="h-count orange">2</td><td class="h-count yellow">2</td><td class="h-sum">5</td><td class="h-amount">2,100.00万</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const defaultState = {
+  name: '全部项目',
+  trend: [40,56,50,88,70,103,118,94,77,100,108,96,90],
+  pie: [135,85,66,46,38],
+  total: '386万'
+};
+const pieLabels = ['人工费', '材料费', '设备费', '分包费', '其他'];
+const pieColors = ['rgba(24,144,255,.78)', 'rgba(16,185,129,.72)', 'rgba(249,115,22,.72)', 'rgba(220,38,38,.68)', 'rgba(6,182,212,.72)'];
+
+function setChartColor(color, el) {
+  document.documentElement.style.setProperty('--chart-color', color);
+  document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function renderTrend(values) {
+  const data = values.map(Number);
+  const max = Math.max(120, Math.ceil(Math.max(...data) / 20) * 20);
+  const left = 70;
+  const right = 682;
+  const top = 62;
+  const bottom = 300;
+  const step = (right - left) / (data.length - 1);
+  const points = data.map((value, index) => {
+    const x = left + index * step;
+    const y = bottom - (value / max) * (bottom - top);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  document.getElementById('linePath').setAttribute('points', points.join(' '));
+  document.getElementById('areaPath').setAttribute('points', `${points.join(' ')} ${right},${bottom} ${left},${bottom}`);
+  document.getElementById('yTick1').textContent = Math.round(max / 3) + '万';
+  document.getElementById('yTick2').textContent = Math.round(max / 3 * 2) + '万';
+  document.getElementById('yTick3').textContent = max + '万';
+  document.getElementById('pointLayer').innerHTML = points.map(point => {
+    const [x, y] = point.split(',');
+    return `<circle cx="${x}" cy="${y}" r="2.8" fill="#fff" stroke="var(--chart-color)" stroke-width="1.8"/>`;
+  }).join('');
+}
+
+function renderPie(values) {
+  const data = values.map(Number);
+  const total = data.reduce((sum, value) => sum + value, 0);
+  const circumference = 2 * Math.PI * 76;
+  let offset = 0;
+
+  document.getElementById('pieSegments').innerHTML = data.map((value, index) => {
+    const length = total ? value / total * circumference : 0;
+    const segment = `<circle cx="100" cy="100" r="76" fill="none" stroke="${pieColors[index]}" stroke-width="26" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 100 100)"/>`;
+    offset += length;
+    return segment;
+  }).join('');
+
+  document.getElementById('pieLegend').innerHTML = data.map((value, index) => {
+    const percent = total ? Math.round(value / total * 100) : 0;
+    return `<span class="legend-item"><span class="legend-dot" style="background:${pieColors[index]};"></span>${pieLabels[index]} ${percent}%</span>`;
+  }).join('');
+}
+
+function applyDashboardState(state) {
+  document.getElementById('trendTitle').textContent = `成本入账趋势 - ${state.name}`;
+  document.getElementById('pieTitle').textContent = `成本科目占比 - ${state.name}`;
+  document.getElementById('pieCenter').textContent = state.total;
+  renderTrend(state.trend);
+  renderPie(state.pie);
+}
+
+function selectProject(row) {
+  const wasSelected = row.classList.contains('selected');
+  document.querySelectorAll('#projectTableBody tr').forEach(item => item.classList.remove('selected'));
+
+  if (wasSelected) {
+    document.getElementById('selLabel').textContent = '';
+    applyDashboardState(defaultState);
+    return;
+  }
+
+  row.classList.add('selected');
+  const state = {
+    name: row.dataset.name,
+    trend: row.dataset.trend.split(','),
+    pie: row.dataset.pie.split(','),
+    total: row.dataset.pietotal
+  };
+  document.getElementById('selLabel').textContent = `已选中：${state.name}`;
+  applyDashboardState(state);
+}
+
+applyDashboardState(defaultState);
+</script>
+</body>
+</html>
