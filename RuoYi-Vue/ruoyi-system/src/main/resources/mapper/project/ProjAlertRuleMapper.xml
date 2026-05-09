@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.ProjAlertRuleMapper">
+  <resultMap id="ProjAlertRuleResult" type="com.ruoyi.system.domain.project.ProjAlertRule">
+    <id property="ruleId" column="rule_id"/>
+    <result property="ruleName" column="rule_name"/>
+    <result property="ruleType" column="rule_type"/>
+    <result property="alertLevel" column="alert_level"/>
+    <result property="thresholdValue" column="threshold_value"/>
+    <result property="compareOperator" column="compare_operator"/>
+    <result property="scopeType" column="scope_type"/>
+    <result property="scopeValue" column="scope_value"/>
+    <result property="notifyEnabled" column="notify_enabled"/>
+    <result property="notifyChannels" column="notify_channels"/>
+    <result property="notifyRoles" column="notify_roles"/>
+    <result property="notifySilenceHours" column="notify_silence_hours"/>
+    <result property="enabled" column="enabled"/>
+    <result property="remark" column="remark"/>
+    <result property="createBy" column="create_by"/>
+    <result property="createTime" column="create_time"/>
+    <result property="updateBy" column="update_by"/>
+    <result property="updateTime" column="update_time"/>
+  </resultMap>
+
+  <sql id="selectRule">
+    select rule_id, rule_name, rule_type, alert_level, threshold_value, compare_operator, scope_type, scope_value,
+           notify_enabled, notify_channels, notify_roles, notify_silence_hours, enabled, remark,
+           create_by, create_time, update_by, update_time
+    from proj_alert_rule
+  </sql>
+
+  <select id="selectAlertRuleById" resultMap="ProjAlertRuleResult">
+    <include refid="selectRule"/> where rule_id = #{ruleId}
+  </select>
+
+  <select id="selectAlertRuleList" parameterType="com.ruoyi.system.domain.project.ProjAlertRule" resultMap="ProjAlertRuleResult">
+    <include refid="selectRule"/>
+    where 1 = 1
+    <if test="ruleName != null and ruleName != ''">and rule_name like concat('%', #{ruleName}, '%')</if>
+    <if test="ruleType != null and ruleType != ''">and rule_type = #{ruleType}</if>
+    <if test="alertLevel != null and alertLevel != ''">and alert_level = #{alertLevel}</if>
+    <if test="enabled != null and enabled != ''">and enabled = #{enabled}</if>
+    order by rule_type asc, cast(alert_level as unsigned) desc, rule_id desc
+  </select>
+
+  <select id="selectEnabledAlertRules" resultMap="ProjAlertRuleResult">
+    <include refid="selectRule"/>
+    where enabled = '1'
+    order by rule_type asc, cast(alert_level as unsigned) desc, rule_id asc
+  </select>
+
+  <insert id="insertAlertRule" parameterType="com.ruoyi.system.domain.project.ProjAlertRule" useGeneratedKeys="true" keyProperty="ruleId">
+    insert into proj_alert_rule(rule_name, rule_type, alert_level, threshold_value, compare_operator, scope_type, scope_value,
+      notify_enabled, notify_channels, notify_roles, notify_silence_hours, enabled, remark, create_by, create_time)
+    values(#{ruleName}, #{ruleType}, #{alertLevel}, #{thresholdValue}, #{compareOperator}, #{scopeType}, #{scopeValue},
+      #{notifyEnabled}, #{notifyChannels}, #{notifyRoles}, #{notifySilenceHours}, #{enabled}, #{remark}, #{createBy}, now())
+  </insert>
+
+  <update id="updateAlertRule" parameterType="com.ruoyi.system.domain.project.ProjAlertRule">
+    update proj_alert_rule
+    set rule_name = #{ruleName},
+        rule_type = #{ruleType},
+        alert_level = #{alertLevel},
+        threshold_value = #{thresholdValue},
+        compare_operator = #{compareOperator},
+        scope_type = #{scopeType},
+        scope_value = #{scopeValue},
+        notify_enabled = #{notifyEnabled},
+        notify_channels = #{notifyChannels},
+        notify_roles = #{notifyRoles},
+        notify_silence_hours = #{notifySilenceHours},
+        enabled = #{enabled},
+        remark = #{remark},
+        update_by = #{updateBy},
+        update_time = now()
+    where rule_id = #{ruleId}
+  </update>
+
+  <update id="updateAlertRuleEnabled">
+    update proj_alert_rule set enabled = #{enabled}, update_by = #{username}, update_time = now() where rule_id = #{ruleId}
+  </update>
+
+  <delete id="deleteAlertRuleByIds">
+    delete from proj_alert_rule where rule_id in
+    <foreach collection="array" item="ruleId" open="(" separator="," close=")">#{ruleId}</foreach>
+  </delete>
+</mapper>

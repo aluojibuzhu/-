@@ -22,6 +22,7 @@ import com.ruoyi.system.mapper.project.ProjInfoMapper;
 import com.ruoyi.system.mapper.project.ProjWbsNodeMapper;
 import com.ruoyi.system.mapper.project.ReimbursementMapper;
 import com.ruoyi.system.mapper.project.WorkHourMapper;
+import com.ruoyi.system.service.project.IAlertTriggerService;
 import com.ruoyi.system.service.project.ICostApprovalService;
 
 @Service
@@ -42,6 +43,8 @@ public class CostApprovalServiceImpl implements ICostApprovalService
     private ProjWbsNodeMapper wbsNodeMapper;
     @Autowired
     private ProjCostAllocationMapper allocationMapper;
+    @Autowired
+    private IAlertTriggerService alertTriggerService;
 
     public List<CostApprovalBill> selectApprovalBillList(CostApprovalBill bill)
     {
@@ -170,6 +173,7 @@ public class CostApprovalServiceImpl implements ICostApprovalService
         ensureCostUpdated(wbsNodeMapper.increaseActualCost(record.getNodeId(), amount, record.getPostBy()), "WBS节点预算");
         ensureCostUpdated(allocationMapper.increaseActualCost(record.getProjId(), record.getNodeId(), record.getCategoryId(), amount, record.getPostBy()), "成本科目预算分配");
         costApprovalMapper.insertPostingRecord(record);
+        alertTriggerService.checkOnPosting(record.getProjId(), record);
     }
 
     private void ensureCostUpdated(int rows, String target)

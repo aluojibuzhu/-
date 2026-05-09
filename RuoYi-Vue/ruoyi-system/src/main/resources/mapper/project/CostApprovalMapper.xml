@@ -67,4 +67,8 @@
   <select id="existsPostingRecord" resultType="int">
     select count(1) from cost_posting_record where bill_type = #{billType} and bill_id = #{billId}
   </select>
+
+  <select id="selectLastPostingTime" resultType="java.util.Date">
+    select max(post_time) from cost_posting_record where proj_id = #{projId}
+  </select>
 </mapper>
