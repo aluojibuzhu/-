@@ -32,9 +32,9 @@ public class AlertDashboardController extends BaseController
 
     @PreAuthorize("@ss.hasPermi('alert:dashboard:view')")
     @GetMapping("/budgetTrend")
-    public AjaxResult budgetTrend(Long projId, String periodType)
+    public AjaxResult budgetTrend(Long projId, String periodType, Long categoryId)
     {
-        return success(alertRecordService.selectBudgetTrend(projId, periodType));
+        return success(alertRecordService.selectBudgetTrend(projId, periodType, categoryId));
     }
 
     @PreAuthorize("@ss.hasPermi('alert:dashboard:view')")

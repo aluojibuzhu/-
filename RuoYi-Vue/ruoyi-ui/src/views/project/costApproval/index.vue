@@ -17,28 +17,28 @@
     <div class="filter-panel">
       <el-form ref="queryForm" :model="queryParams" :inline="true" size="small" label-width="76px">
         <el-form-item label="单据编号" prop="billNo">
-          <el-input v-model="queryParams.billNo" clearable placeholder="请输入编号" @keyup.enter.native="handleQuery" />
+          <el-input v-model="queryParams.billNo" clearable placeholder="请输入编号" @keyup.enter.native="handleQuery" @clear="handleQuery" />
         </el-form-item>
         <el-form-item label="单据类型" prop="billType">
-          <el-select v-model="queryParams.billType" clearable placeholder="全部类型" class="filter-status">
+          <el-select v-model="queryParams.billType" clearable placeholder="全部类型" class="filter-status" @change="handleQuery">
             <el-option label="工时单" value="WORK_HOUR" />
             <el-option label="报销单" value="REIMBURSEMENT" />
           </el-select>
         </el-form-item>
         <el-form-item label="所属项目" prop="projId">
-          <el-select v-model="queryParams.projId" clearable filterable placeholder="全部项目" class="filter-project">
+          <el-select v-model="queryParams.projId" clearable filterable placeholder="全部项目" class="filter-project" @change="handleQuery">
             <el-option v-for="item in projects" :key="item.projId" :label="item.projName" :value="item.projId" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-select v-model="queryParams.status" clearable placeholder="全部状态" class="filter-status">
+          <el-select v-model="queryParams.status" clearable placeholder="全部状态" class="filter-status" @change="handleQuery">
             <el-option label="审批中" value="1" />
             <el-option label="已通过" value="2" />
             <el-option label="已入账" value="4" />
           </el-select>
         </el-form-item>
         <el-form-item label="提交时间">
-          <el-date-picker v-model="submitRange" type="daterange" value-format="yyyy-MM-dd" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
+          <el-date-picker v-model="submitRange" type="daterange" value-format="yyyy-MM-dd" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" @change="handleQuery" />
         </el-form-item>
         <el-form-item class="filter-actions">
           <el-button type="primary" icon="el-icon-search" @click="handleQuery">搜索</el-button>

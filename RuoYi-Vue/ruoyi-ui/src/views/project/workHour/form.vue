@@ -36,16 +36,9 @@
               </el-form-item>
             </el-col>
             <el-col :xs="24" :sm="12" :lg="8">
-              <el-form-item label="成本科目" prop="categoryId">
-                <el-select v-model="form.workHour.categoryId" filterable clearable class="field-full" placeholder="请选择人工费类科目" @change="handleCategoryChange">
+              <el-form-item label="工时类型" prop="categoryId">
+                <el-select v-model="form.workHour.categoryId" filterable clearable class="field-full" placeholder="请选择人工费二级科目" @change="handleCategoryChange">
                   <el-option v-for="item in categories" :key="item.categoryId" :label="item.categoryName" :value="item.categoryId" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :sm="12" :lg="8">
-              <el-form-item label="工作类型" prop="workType">
-                <el-select v-model="form.workHour.workType" clearable class="field-full" placeholder="请选择工作类型" @change="markDirty">
-                  <el-option v-for="dict in dict.type.wh_work_type" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -103,7 +96,6 @@ import { formatMoney } from '@/utils/project'
 
 export default {
   name: 'WorkHourForm',
-  dicts: ['wh_work_type'],
   data() {
     const validateHalfHour = (rule, value, callback) => {
       if (!value || Number(value) <= 0) return callback(new Error('工时数必须大于0'))
@@ -121,8 +113,7 @@ export default {
       rules: {
         projId: [{ required: true, message: '请选择所属项目', trigger: 'change' }],
         nodeId: [{ required: true, message: '请选择WBS节点', trigger: 'change' }],
-        categoryId: [{ required: true, message: '请选择成本科目', trigger: 'change' }],
-        workType: [{ required: true, message: '请选择工作类型', trigger: 'change' }],
+        categoryId: [{ required: true, message: '请选择工时类型', trigger: 'change' }],
         workDate: [{ required: true, message: '请选择填报日期', trigger: 'change' }],
         workHours: [{ required: true, validator: validateHalfHour, trigger: 'change' }],
         workDesc: [{ required: true, message: '请输入工作内容', trigger: 'blur' }]
@@ -199,6 +190,7 @@ export default {
     handleCategoryChange(categoryId) {
       const category = this.categories.find(item => item.categoryId === categoryId)
       this.form.workHour.categoryName = category ? category.categoryName : ''
+      this.form.workHour.workType = category ? String(category.categoryId) : ''
       this.form.workHour.unitPrice = category ? Number(category.unitPrice || 0) : 0
       this.recalculate()
     },

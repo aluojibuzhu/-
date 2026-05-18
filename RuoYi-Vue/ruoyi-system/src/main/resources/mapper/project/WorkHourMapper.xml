@@ -34,7 +34,7 @@
     <if test="whNo != null and whNo != ''">and wh_no like concat('%', #{whNo}, '%')</if>
     <if test="projId != null">and proj_id = #{projId}</if>
     <if test="nodeId != null">and node_id = #{nodeId}</if>
-    <if test="workType != null and workType != ''">and work_type = #{workType}</if>
+    <if test="workType != null and workType != ''">and (work_type = #{workType} or category_id = #{workType})</if>
     <if test="status != null and status != ''">and status = #{status}</if>
     <if test="beginWorkDate != null">and work_date &gt;= #{beginWorkDate}</if>
     <if test="endWorkDate != null">and work_date &lt;= #{endWorkDate}</if>

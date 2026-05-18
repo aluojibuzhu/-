@@ -3,6 +3,8 @@ package com.ruoyi.system.service.project.impl;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,7 +12,6 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.domain.project.CostApprovalBill;
 import com.ruoyi.system.domain.project.CostPostingRecord;
-import com.ruoyi.system.domain.project.ProjCostAllocation;
 import com.ruoyi.system.domain.project.Reimbursement;
 import com.ruoyi.system.domain.project.ReimbursementStatus;
 import com.ruoyi.system.domain.project.WorkHour;
@@ -28,6 +29,8 @@ import com.ruoyi.system.service.project.ICostApprovalService;
 @Service
 public class CostApprovalServiceImpl implements ICostApprovalService
 {
+    private static final Logger log = LoggerFactory.getLogger(CostApprovalServiceImpl.class);
+
     public static final String BILL_TYPE_WORK_HOUR = "WORK_HOUR";
     public static final String BILL_TYPE_REIMBURSEMENT = "REIMBURSEMENT";
 
@@ -171,9 +174,20 @@ public class CostApprovalServiceImpl implements ICostApprovalService
         BigDecimal amount = record.getAmount() == null ? BigDecimal.ZERO : record.getAmount();
         ensureCostUpdated(projInfoMapper.increaseActualCost(record.getProjId(), amount, record.getPostBy()), "项目预算");
         ensureCostUpdated(wbsNodeMapper.increaseActualCost(record.getNodeId(), amount, record.getPostBy()), "WBS节点预算");
-        ensureCostUpdated(allocationMapper.increaseActualCost(record.getProjId(), record.getNodeId(), record.getCategoryId(), amount, record.getPostBy()), "成本科目预算分配");
+        if (record.getCategoryId() != null)
+        {
+            ensureCostUpdated(allocationMapper.increaseActualCost(record.getProjId(), record.getNodeId(), record.getCategoryId(), amount, record.getPostBy()), "成本科目预算分配");
+        }
         costApprovalMapper.insertPostingRecord(record);
-        alertTriggerService.checkOnPosting(record.getProjId(), record);
+        try
+        {
+            alertTriggerService.checkOnPosting(record.getProjId(), record);
+        }
+        catch (Exception e)
+        {
+            log.warn("Alert check failed after cost posting, projId={}, billType={}, billId={}",
+                    record.getProjId(), record.getBillType(), record.getBillId(), e);
+        }
     }
 
     private void ensureCostUpdated(int rows, String target)
@@ -214,7 +228,7 @@ public class CostApprovalServiceImpl implements ICostApprovalService
         record.setNodeId(reimbursement.getNodeId());
         record.setNodeName(reimbursement.getNodeName());
         record.setCategoryId(reimbursement.getCategoryId());
-        record.setCategoryName(reimbursement.getCategoryName());
+        record.setCategoryName(StringUtils.isEmpty(reimbursement.getCategoryName()) ? reimbursement.getExpenseType() : reimbursement.getCategoryName());
         record.setAmount(reimbursement.getAmount());
         record.setPostBy(username);
         record.setPostTime(new Date());

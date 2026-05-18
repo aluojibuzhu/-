@@ -38,7 +38,6 @@ public class AlertTriggerServiceImpl implements IAlertTriggerService
     @Autowired
     private IProjAlertLogService alertLogService;
 
-    @Transactional
     public void checkOnPosting(Long projId, CostPostingRecord posting)
     {
         if (projId == null)
@@ -90,6 +89,10 @@ public class AlertTriggerServiceImpl implements IAlertTriggerService
             }
             for (ProjInfo project : projects)
             {
+                if (!isDailyScanProject(project))
+                {
+                    continue;
+                }
                 if (!matchesProjectScope(rule, project.getProjId()))
                 {
                     continue;
@@ -209,7 +212,7 @@ public class AlertTriggerServiceImpl implements IAlertTriggerService
         Date now = new Date();
         if ("OVERDUE".equals(ruleType))
         {
-            if ("5".equals(project.getStatus()) || project.getPlanEndDate() == null || !now.after(project.getPlanEndDate()))
+            if (project.getPlanEndDate() == null || !now.after(project.getPlanEndDate()))
             {
                 return BigDecimal.ZERO;
             }
@@ -225,9 +228,14 @@ public class AlertTriggerServiceImpl implements IAlertTriggerService
                 return BigDecimal.ZERO;
             }
             long days = TimeUnit.MILLISECONDS.toDays(now.getTime() - baseline.getTime());
-            return BigDecimal.valueOf(days).divide(new BigDecimal("30"), 2, RoundingMode.HALF_UP);
+            return BigDecimal.valueOf(days / 30L);
         }
         return null;
+    }
+
+    private boolean isDailyScanProject(ProjInfo project)
+    {
+        return project != null && ("2".equals(project.getStatus()) || "4".equals(project.getStatus()));
     }
 
     private boolean matchesThreshold(BigDecimal currentValue, ProjAlertRule rule)
@@ -256,7 +264,7 @@ public class AlertTriggerServiceImpl implements IAlertTriggerService
         {
             return containsId(rule.getScopeValue(), posting.getCategoryId());
         }
-        return true;
+        return false;
     }
 
     private boolean matchesProjectScope(ProjAlertRule rule, Long projId)
@@ -269,7 +277,7 @@ public class AlertTriggerServiceImpl implements IAlertTriggerService
         {
             return containsId(rule.getScopeValue(), projId);
         }
-        return true;
+        return false;
     }
 
     private boolean containsId(String source, Long value)

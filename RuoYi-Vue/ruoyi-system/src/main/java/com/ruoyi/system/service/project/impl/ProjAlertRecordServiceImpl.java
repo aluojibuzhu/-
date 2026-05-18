@@ -6,8 +6,10 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.system.domain.project.ProjAlertLog;
 import com.ruoyi.system.domain.project.ProjAlertRecord;
+import com.ruoyi.system.domain.vo.project.AlertProjectMetricVO;
 import com.ruoyi.system.mapper.project.ProjAlertRecordMapper;
 import com.ruoyi.system.service.project.IProjAlertLogService;
 import com.ruoyi.system.service.project.IProjAlertRecordService;
@@ -38,6 +40,7 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
     @Transactional
     public int confirm(Long alertId, String remark, String username)
     {
+        ensureStatus(alertId, "0", "3");
         int rows = updateStatus(alertId, "1", remark, username, false);
         alertLogService.insertAlertLog(alertId, "CONFIRM", username, remark);
         return rows;
@@ -46,6 +49,7 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
     @Transactional
     public int ignore(Long alertId, String remark, String username)
     {
+        ensureStatus(alertId, "0", "3");
         int rows = updateStatus(alertId, "2", remark, username, false);
         alertLogService.insertAlertLog(alertId, "IGNORE", username, remark);
         return rows;
@@ -54,6 +58,7 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
     @Transactional
     public int follow(Long alertId, String remark, String username)
     {
+        ensureStatus(alertId, "0", "3");
         int rows = updateStatus(alertId, "3", remark, username, false);
         alertLogService.insertAlertLog(alertId, "FOLLOW", username, remark);
         return rows;
@@ -62,6 +67,11 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
     @Transactional
     public int close(Long alertId, String remark, String username)
     {
+        ProjAlertRecord record = requireAlert(alertId);
+        if ("4".equals(record.getStatus()))
+        {
+            throw new ServiceException("预警已关闭，请勿重复操作");
+        }
         int rows = updateStatus(alertId, "4", remark, username, true);
         alertLogService.insertAlertLog(alertId, "CLOSE", username, remark);
         return rows;
@@ -72,14 +82,14 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
         return alertRecordMapper.selectAlertSummary();
     }
 
-    public List<Map<String, Object>> selectProjectHealth()
+    public List<AlertProjectMetricVO> selectProjectHealth()
     {
         return alertRecordMapper.selectProjectHealth();
     }
 
-    public List<Map<String, Object>> selectBudgetTrend(Long projId, String periodType)
+    public List<Map<String, Object>> selectBudgetTrend(Long projId, String periodType, Long categoryId)
     {
-        return alertRecordMapper.selectBudgetTrend(projId, periodType);
+        return alertRecordMapper.selectBudgetTrend(projId, periodType, categoryId);
     }
 
     public List<Map<String, Object>> selectCategoryCompare(Long projId)
@@ -87,9 +97,36 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
         return alertRecordMapper.selectCategoryCompare(projId);
     }
 
-    public List<Map<String, Object>> selectTopProjects()
+    public List<AlertProjectMetricVO> selectTopProjects()
     {
         return alertRecordMapper.selectTopProjects();
+    }
+
+    private void ensureStatus(Long alertId, String... allowedStatuses)
+    {
+        ProjAlertRecord record = requireAlert(alertId);
+        for (String status : allowedStatuses)
+        {
+            if (status.equals(record.getStatus()))
+            {
+                return;
+            }
+        }
+        throw new ServiceException("当前预警状态不允许执行该操作");
+    }
+
+    private ProjAlertRecord requireAlert(Long alertId)
+    {
+        if (alertId == null)
+        {
+            throw new ServiceException("预警ID不能为空");
+        }
+        ProjAlertRecord record = alertRecordMapper.selectAlertRecordById(alertId);
+        if (record == null)
+        {
+            throw new ServiceException("预警记录不存在");
+        }
+        return record;
     }
 
     private int updateStatus(Long alertId, String status, String remark, String username, boolean close)
@@ -107,6 +144,11 @@ public class ProjAlertRecordServiceImpl implements IProjAlertRecordService
             record.setClosedTime(new Date());
             record.setCloseRemark(remark);
         }
-        return alertRecordMapper.updateAlertStatus(record);
+        int rows = alertRecordMapper.updateAlertStatus(record);
+        if (rows == 0)
+        {
+            throw new ServiceException("预警状态更新失败，请刷新后重试");
+        }
+        return rows;
     }
 }

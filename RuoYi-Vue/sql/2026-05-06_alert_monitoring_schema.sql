@@ -103,6 +103,14 @@ INSERT INTO `proj_alert_rule` (`rule_name`, `rule_type`, `alert_level`, `thresho
 SELECT '项目预算余额低于10%', 'BALANCE_RATE', '2', 10.00, '<=', '0', '1', 'SYSTEM', 'project_manager,cost_manager', 24, '1', '预算余额不足预警', 'admin', NOW()
 WHERE NOT EXISTS (SELECT 1 FROM `proj_alert_rule` WHERE `rule_type` = 'BALANCE_RATE');
 
+INSERT INTO `proj_alert_rule` (`rule_name`, `rule_type`, `alert_level`, `threshold_value`, `compare_operator`, `scope_type`, `notify_enabled`, `notify_channels`, `notify_roles`, `notify_silence_hours`, `enabled`, `remark`, `create_by`, `create_time`)
+SELECT '项目逾期超过30天', 'OVERDUE', '2', 30.00, '>=', '0', '1', 'SYSTEM', 'project_manager,cost_manager', 24, '1', '项目计划竣工后仍未完工的逾期预警', 'admin', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `proj_alert_rule` WHERE `rule_type` = 'OVERDUE');
+
+INSERT INTO `proj_alert_rule` (`rule_name`, `rule_type`, `alert_level`, `threshold_value`, `compare_operator`, `scope_type`, `notify_enabled`, `notify_channels`, `notify_roles`, `notify_silence_hours`, `enabled`, `remark`, `create_by`, `create_time`)
+SELECT '项目连续3个月无入账', 'INACTIVE', '1', 3.00, '>=', '0', '1', 'SYSTEM', 'project_manager,cost_manager', 24, '1', '项目长期无成本入账的静默预警', 'admin', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `proj_alert_rule` WHERE `rule_type` = 'INACTIVE');
+
 INSERT INTO `sys_menu` (`menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `create_by`, `create_time`, `remark`)
 SELECT '监控预警', 0, 4, 'alertMonitor', NULL, '', 1, 0, 'M', '0', '0', '', 'warning', 'admin', NOW(), '监控预警模块'
 WHERE NOT EXISTS (SELECT 1 FROM `sys_menu` WHERE `menu_name` = '监控预警' AND `parent_id` = 0);
@@ -141,6 +149,6 @@ SELECT '预警规则删除', @alert_rule_menu_id, 3, '#', '', '', 1, 0, 'F', '0'
 WHERE @alert_rule_menu_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `sys_menu` WHERE `parent_id` = @alert_rule_menu_id AND `perms` = 'alert:rule:remove');
 
 INSERT INTO `sys_job` (`job_name`, `job_group`, `invoke_target`, `cron_expression`, `misfire_policy`, `concurrent`, `status`, `create_by`, `create_time`, `remark`)
-SELECT '预警每日扫描', 'DEFAULT', 'alertDailyScanTask.scan', '0 0 2 * * ?', '3', '1', '1', 'admin', NOW(), '扫描项目逾期与长期无入账规则，默认暂停，可在系统监控-定时任务中启用'
+SELECT '预警每日扫描', 'DEFAULT', 'alertDailyScanTask.scan', '0 0 2 * * ?', '3', '1', '0', 'admin', NOW(), '扫描项目逾期与长期无入账规则，默认暂停，可在系统监控-定时任务中启用'
 WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'sys_job')
   AND NOT EXISTS (SELECT 1 FROM `sys_job` WHERE `invoke_target` = 'alertDailyScanTask.scan');

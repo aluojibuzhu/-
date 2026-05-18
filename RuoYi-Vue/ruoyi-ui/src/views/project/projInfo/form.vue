@@ -85,17 +85,20 @@
           <el-table-column prop="nodeNo" label="节点编号" width="112" align="center">
             <template slot-scope="scope">{{ scope.row.nodeNo || nextNodeNo(scope.$index) }}</template>
           </el-table-column>
-          <el-table-column label="节点名称" min-width="180" align="center">
+          <el-table-column min-width="180" align="center">
+            <template slot="header"><span class="required-label">节点名称</span></template>
             <template slot-scope="scope">
               <el-input v-model="scope.row.nodeName" clearable maxlength="30" placeholder="如：基础工程" @input="markDirty" />
             </template>
           </el-table-column>
-          <el-table-column label="预计完成" width="160" align="center">
+          <el-table-column width="160" align="center">
+            <template slot="header"><span class="required-label">预计完成</span></template>
             <template slot-scope="scope">
               <el-date-picker v-model="scope.row.planFinishDate" value-format="yyyy-MM-dd" type="date" class="table-date" @change="markDirty" />
             </template>
           </el-table-column>
-          <el-table-column v-for="category in costColumns" :key="category.categoryId" :label="category.categoryName" width="150" align="center">
+          <el-table-column v-for="category in costColumns" :key="category.categoryId" width="150" align="center">
+            <template slot="header"><span class="required-label">{{ category.categoryName }}</span></template>
             <template slot-scope="scope">
               <el-input
                 v-model="scope.row.allocations[category.categoryId]"
@@ -108,7 +111,8 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="节点预算" width="150" align="center">
+          <el-table-column width="150" align="center">
+            <template slot="header"><span class="required-label">节点预算</span></template>
             <template slot-scope="scope">
               <span class="budget-text">{{ formatMoney(scope.row.nodeBudget) }}</span>
             </template>
@@ -226,7 +230,7 @@ export default {
       const allocations = {}
       this.costColumns.forEach(category => {
         const found = this.form.allocations.find(item => String(item.nodeId) === String(node.nodeId) && String(item.categoryId) === String(category.categoryId))
-        this.$set(allocations, category.categoryId, found ? Number(found.allocationAmount || 0) : 0)
+        this.$set(allocations, category.categoryId, found ? Number(found.allocationAmount || 0) : (node.blankAllocations ? null : 0))
       })
       return Object.assign({}, node, { allocations, nodeBudget: this.sumAllocations(allocations) })
     },
@@ -256,7 +260,7 @@ export default {
     },
     addNode() {
       this.tempNodeSeq += 1
-      this.form.wbsNodes.push(this.decorateNode({ nodeId: -this.tempNodeSeq, nodeNo: '', nodeName: '', planFinishDate: '', nodeBudget: 0 }))
+      this.form.wbsNodes.push(this.decorateNode({ nodeId: -this.tempNodeSeq, nodeNo: '', nodeName: '', planFinishDate: '', nodeBudget: 0, blankAllocations: true }))
       this.markDirty()
     },
     removeNode(index) {
@@ -327,9 +331,23 @@ export default {
         this.$message.warning('请至少新增一个WBS节点')
         return false
       }
-      const invalid = this.form.wbsNodes.find(node => !node.nodeName || !node.planFinishDate)
+      const invalid = this.form.wbsNodes.find(node => !String(node.nodeName || '').trim() || !node.planFinishDate)
       if (invalid) {
         this.$message.warning('请完善WBS节点名称和预计完成日期')
+        return false
+      }
+      const invalidAllocation = this.form.wbsNodes.find(node => this.costColumns.some(category => {
+        const value = node.allocations[category.categoryId]
+        const amount = Number(value)
+        return value === null || value === undefined || value === '' || !Number.isFinite(amount) || amount < 0
+      }))
+      if (invalidAllocation) {
+        this.$message.warning('请完善WBS节点的所有成本科目金额')
+        return false
+      }
+      const emptyBudget = this.form.wbsNodes.find(node => this.sumAllocations(node.allocations) <= 0)
+      if (emptyBudget) {
+        this.$message.warning('WBS节点预算必须大于0')
         return false
       }
       return true
@@ -475,6 +493,12 @@ export default {
   margin-right: 12px;
   font-size: 13px;
   color: #8c98a8;
+}
+
+.required-label:before {
+  content: '*';
+  color: #f56c6c;
+  margin-right: 4px;
 }
 
 .field-full,

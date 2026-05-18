@@ -39,6 +39,21 @@
     <result property="updateTime" column="update_time"/>
   </resultMap>
 
+  <resultMap id="AlertProjectMetricResult" type="com.ruoyi.system.domain.vo.project.AlertProjectMetricVO">
+    <id property="projId" column="proj_id"/>
+    <result property="projNo" column="proj_no"/>
+    <result property="projName" column="proj_name"/>
+    <result property="planStartDate" column="plan_start_date"/>
+    <result property="planEndDate" column="plan_end_date"/>
+    <result property="totalBudget" column="total_budget"/>
+    <result property="actualCost" column="actual_cost"/>
+    <result property="execRate" column="exec_rate"/>
+    <result property="activeAlertCount" column="active_alert_count"/>
+    <result property="redCount" column="red_count"/>
+    <result property="orangeCount" column="orange_count"/>
+    <result property="yellowCount" column="yellow_count"/>
+  </resultMap>
+
   <sql id="selectRecord">
     select alert_id, alert_no, rule_id, rule_name, rule_type, alert_level, alert_type, proj_id, proj_no, proj_name,
            node_id, node_name, category_id, category_name, total_budget, actual_cost, budget_balance,
@@ -114,64 +129,85 @@
     from proj_alert_record
   </select>
 
-  <select id="selectProjectHealth" resultType="java.util.HashMap">
-    select p.proj_id as projId, p.proj_no as projNo, p.proj_name as projName,
-           p.plan_start_date as planStartDate, p.plan_end_date as planEndDate,
-           ifnull(p.total_budget, 0) as totalBudget,
-           ifnull(p.actual_cost, 0) as actualCost,
-           case when ifnull(p.total_budget, 0) = 0 then 0 else round(ifnull(p.actual_cost, 0) / p.total_budget * 100, 2) end as execRate,
-           sum(case when a.status in ('0','3') and a.alert_level = '3' then 1 else 0 end) as redCount,
-           sum(case when a.status in ('0','3') and a.alert_level = '2' then 1 else 0 end) as orangeCount,
-           sum(case when a.status in ('0','3') and a.alert_level = '1' then 1 else 0 end) as yellowCount
+  <select id="selectProjectHealth" resultMap="AlertProjectMetricResult">
+    select p.proj_id, p.proj_no, p.proj_name,
+           p.plan_start_date, p.plan_end_date,
+           ifnull(p.total_budget, 0) as total_budget,
+           ifnull(p.actual_cost, 0) as actual_cost,
+           case when ifnull(p.total_budget, 0) = 0 then 0 else round(ifnull(p.actual_cost, 0) / p.total_budget * 100, 2) end as exec_rate,
+           sum(case when a.status in ('0','3') and a.alert_level = '3' then 1 else 0 end) as red_count,
+           sum(case when a.status in ('0','3') and a.alert_level = '2' then 1 else 0 end) as orange_count,
+           sum(case when a.status in ('0','3') and a.alert_level = '1' then 1 else 0 end) as yellow_count
     from proj_info p
     left join proj_alert_record a on a.proj_id = p.proj_id
     where p.del_flag = '0'
     group by p.proj_id, p.proj_no, p.proj_name, p.plan_start_date, p.plan_end_date, p.total_budget, p.actual_cost
-    order by redCount desc, orangeCount desc, yellowCount desc, execRate desc
+    order by red_count desc, orange_count desc, yellow_count desc, exec_rate desc
   </select>
 
   <select id="selectBudgetTrend" resultType="java.util.HashMap">
     select
            <choose>
-             <when test="periodType == 'year'">date_format(post_time, '%Y')</when>
-             <when test="periodType == 'day'">date_format(post_time, '%Y-%m-%d')</when>
-             <otherwise>date_format(post_time, '%Y-%m')</otherwise>
+             <when test="periodType == 'year'">date_format(cost_posting_record.post_time, '%Y')</when>
+             <when test="periodType == 'day'">date_format(cost_posting_record.post_time, '%Y-%m-%d')</when>
+             <otherwise>date_format(cost_posting_record.post_time, '%Y-%m')</otherwise>
            </choose>
            as period,
-           ifnull(sum(amount), 0) as postingAmount
+           ifnull(sum(cost_posting_record.amount), 0) as postingAmount
     from cost_posting_record
+    <if test="categoryId != null">
+    left join sys_cost_category category on category.category_id = cost_posting_record.category_id and category.del_flag = '0'
+    left join sys_cost_category root on root.category_id = case when ifnull(category.parent_id, 0) = 0 then category.category_id else category.parent_id end and root.del_flag = '0'
+    left join sys_cost_category selected_category on selected_category.category_id = #{categoryId} and selected_category.del_flag = '0'
+    </if>
     where 1 = 1
-    <if test="projId != null">and proj_id = #{projId}</if>
+    <if test="projId != null">and cost_posting_record.proj_id = #{projId}</if>
+    <if test="categoryId != null">
+      and (
+        root.category_id = #{categoryId}
+        or category.category_id = #{categoryId}
+        or (cost_posting_record.category_id is null and cost_posting_record.category_name = selected_category.category_name)
+      )
+    </if>
     group by
            <choose>
-             <when test="periodType == 'year'">date_format(post_time, '%Y')</when>
-             <when test="periodType == 'day'">date_format(post_time, '%Y-%m-%d')</when>
-             <otherwise>date_format(post_time, '%Y-%m')</otherwise>
+             <when test="periodType == 'year'">date_format(cost_posting_record.post_time, '%Y')</when>
+             <when test="periodType == 'day'">date_format(cost_posting_record.post_time, '%Y-%m-%d')</when>
+             <otherwise>date_format(cost_posting_record.post_time, '%Y-%m')</otherwise>
            </choose>
     order by period asc
   </select>
 
   <select id="selectCategoryCompare" resultType="java.util.HashMap">
-    select category_name as categoryName, ifnull(sum(amount), 0) as actualCost
-    from cost_posting_record
+    select coalesce(root.category_id, category.category_id, posting.category_id) as categoryId,
+           coalesce(root.category_name, category.category_name, posting.category_name, '未分类') as categoryName,
+           ifnull(sum(posting.amount), 0) as actualCost
+    from cost_posting_record posting
+    left join sys_cost_category category
+           on category.category_id = posting.category_id
+          and category.del_flag = '0'
+    left join sys_cost_category root
+           on root.category_id = case when ifnull(category.parent_id, 0) = 0 then category.category_id else category.parent_id end
+          and root.del_flag = '0'
     where 1 = 1
-    <if test="projId != null">and proj_id = #{projId}</if>
-    group by category_id, category_name
+    <if test="projId != null">and posting.proj_id = #{projId}</if>
+    group by coalesce(root.category_id, category.category_id, posting.category_id),
+             coalesce(root.category_name, category.category_name, posting.category_name, '未分类')
     order by actualCost desc
     limit 8
   </select>
 
-  <select id="selectTopProjects" resultType="java.util.HashMap">
-    select p.proj_id as projId, p.proj_no as projNo, p.proj_name as projName,
-           p.plan_start_date as planStartDate, p.plan_end_date as planEndDate,
-           ifnull(p.total_budget, 0) as totalBudget,
-           ifnull(p.actual_cost, 0) as actualCost,
-           case when ifnull(p.total_budget, 0) = 0 then 0 else round(ifnull(p.actual_cost, 0) / p.total_budget * 100, 2) end as execRate,
-           count(a.alert_id) as activeAlertCount
+  <select id="selectTopProjects" resultMap="AlertProjectMetricResult">
+    select p.proj_id, p.proj_no, p.proj_name,
+           p.plan_start_date, p.plan_end_date,
+           ifnull(p.total_budget, 0) as total_budget,
+           ifnull(p.actual_cost, 0) as actual_cost,
+           case when ifnull(p.total_budget, 0) = 0 then 0 else round(ifnull(p.actual_cost, 0) / p.total_budget * 100, 2) end as exec_rate,
+           count(a.alert_id) as active_alert_count
     from proj_info p
     left join proj_alert_record a on a.proj_id = p.proj_id and a.status in ('0','3')
     where p.del_flag = '0'
     group by p.proj_id, p.proj_no, p.proj_name, p.plan_start_date, p.plan_end_date, p.total_budget, p.actual_cost
-    order by execRate desc, activeAlertCount desc
+    order by exec_rate desc, active_alert_count desc
   </select>
 </mapper>

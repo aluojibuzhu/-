@@ -3,7 +3,7 @@
     <div class="page-heading">
       <div>
         <h2>预警规则配置</h2>
-        <p>维护预算执行率、单笔金额、预算余额等预警阈值和适用范围</p>
+        <p>维护预算执行率、单笔金额、预算余额、逾期停滞等预警阈值和适用范围</p>
       </div>
       <el-button type="primary" icon="el-icon-plus" size="small" @click="handleAdd">新增规则</el-button>
     </div>
@@ -72,6 +72,9 @@
             <el-button type="text" icon="el-icon-delete" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
+        <template slot="empty">
+          <el-empty description="暂无预警规则" />
+        </template>
       </el-table>
       <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
     </div>
@@ -191,6 +194,8 @@ export default {
       listAlertRules(this.queryParams).then(res => {
         this.list = res.rows || []
         this.total = res.total || 0
+      }).catch(() => {
+        this.$message.error('预警规则加载失败')
       }).finally(() => {
         this.loading = false
       })
@@ -218,6 +223,8 @@ export default {
         this.form = res.data
         this.title = '修改预警规则'
         this.open = true
+      }).catch(() => {
+        this.$message.error('预警规则详情加载失败')
       })
     },
     submitForm() {
@@ -225,24 +232,32 @@ export default {
         if (!valid) return
         const api = this.form.ruleId ? updateAlertRule : addAlertRule
         api(this.form).then(() => {
-          this.$modal.msgSuccess('保存成功')
+          this.$message.success('保存成功')
           this.open = false
           this.getList()
+        }).catch(() => {
+          this.$message.error('保存失败')
         })
       })
     },
     handleToggle(row) {
+      const previous = row.enabled === '1' ? '0' : '1'
       toggleAlertRule(row.ruleId, row.enabled).then(() => {
-        this.$modal.msgSuccess(row.enabled === '1' ? '已启用' : '已停用')
+        this.$message.success(row.enabled === '1' ? '已启用' : '已停用')
       }).catch(() => {
-        row.enabled = row.enabled === '1' ? '0' : '1'
+        row.enabled = previous
+        this.$message.error('状态更新失败')
       })
     },
     handleDelete(row) {
       this.$modal.confirm('确认删除规则 "' + row.ruleName + '" 吗？').then(() => delAlertRule(row.ruleId)).then(() => {
-        this.$modal.msgSuccess('删除成功')
+        this.$message.success('删除成功')
         this.getList()
-      }).catch(() => {})
+      }).catch(err => {
+        if (err !== 'cancel' && err !== 'close') {
+          this.$message.error('删除失败')
+        }
+      })
     },
     scopeLabel(scopeType) {
       return ({ '0': '全局', '1': '指定项目', '2': '指定科目' })[scopeType] || scopeType
@@ -252,17 +267,17 @@ export default {
 </script>
 
 <style scoped>
-.alert-rule-page { background: #f6f8fb; min-height: calc(100vh - 84px); }
+.alert-rule-page { background: #f5f7fa; min-height: calc(100vh - 84px); }
 .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.page-heading h2 { margin: 0 0 6px; color: #172033; font-size: 24px; font-weight: 700; }
-.page-heading p { margin: 0; color: #6b7280; font-size: 14px; }
-.filter-panel, .table-panel { background: #fff; border: 1px solid #e5eaf3; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+.page-heading h2 { margin: 0 0 6px; color: #1f2d3d; font-size: 22px; font-weight: 600; }
+.page-heading p { margin: 0; color: #8c98a8; font-size: 13px; }
+.filter-panel, .table-panel { background: #fff; border: 1px solid #e6ebf2; border-radius: 6px; padding: 18px 20px; margin-bottom: 16px; }
 .filter-select { width: 132px; }
 .filter-actions { margin-left: 4px; }
 .table-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.toolbar-title { color: #1f2937; font-weight: 700; margin-right: 8px; }
-.toolbar-count { color: #64748b; font-size: 13px; }
-.muted { color: #94a3b8; }
+.toolbar-title { color: #1f2d3d; font-weight: 600; margin-right: 8px; }
+.toolbar-count { color: #8c98a8; font-size: 13px; }
+.muted { color: #8c98a8; }
 .full-width { width: 100%; }
 ::v-deep .el-input-number .el-input__inner { text-align: left; }
 </style>

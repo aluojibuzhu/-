@@ -21,14 +21,17 @@
   </resultMap>
 
   <sql id="approvalUnion">
-    select 'WORK_HOUR' as bill_type, wh_id as bill_id, wh_no as bill_no, proj_id, proj_name, node_id, node_name,
-           category_id, category_name, work_cost as amount, work_hours, null as expense_type, status, submit_time,
-           create_by as applicant, approve_time as post_time
-    from wh_work_hour
-    where del_flag = '0' and status in ('1', '2', '4')
+    select 'WORK_HOUR' as bill_type, w.wh_id as bill_id, w.wh_no as bill_no, w.proj_id, w.proj_name, w.node_id, w.node_name,
+           w.category_id, coalesce(root.category_name, category.category_name, w.category_name) as category_name,
+           w.work_cost as amount, w.work_hours, root.category_name as expense_type, w.status, w.submit_time,
+           w.create_by as applicant, w.approve_time as post_time
+    from wh_work_hour w
+    left join sys_cost_category category on category.category_id = w.category_id and category.del_flag = '0'
+    left join sys_cost_category root on root.category_id = case when ifnull(category.parent_id, 0) = 0 then category.category_id else category.parent_id end and root.del_flag = '0'
+    where w.del_flag = '0' and w.status in ('1', '2', '4')
     union all
     select 'REIMBURSEMENT' as bill_type, reimburse_id as bill_id, reimburse_no as bill_no, proj_id, proj_name, node_id, node_name,
-           category_id, category_name, amount, null as work_hours, expense_type, status, submit_time,
+           category_id, expense_type as category_name, amount, null as work_hours, expense_type, status, submit_time,
            create_by as applicant, approve_time as post_time
     from exp_reimbursement
     where del_flag = '0' and status in ('1', '2', '4')

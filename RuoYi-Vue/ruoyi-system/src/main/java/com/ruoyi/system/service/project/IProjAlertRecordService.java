@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import com.ruoyi.system.domain.project.ProjAlertLog;
 import com.ruoyi.system.domain.project.ProjAlertRecord;
+import com.ruoyi.system.domain.vo.project.AlertProjectMetricVO;
 
 public interface IProjAlertRecordService
 {
@@ -15,8 +16,8 @@ public interface IProjAlertRecordService
     int follow(Long alertId, String remark, String username);
     int close(Long alertId, String remark, String username);
     Map<String, Object> selectSummary();
-    List<Map<String, Object>> selectProjectHealth();
-    List<Map<String, Object>> selectBudgetTrend(Long projId, String periodType);
+    List<AlertProjectMetricVO> selectProjectHealth();
+    List<Map<String, Object>> selectBudgetTrend(Long projId, String periodType, Long categoryId);
     List<Map<String, Object>> selectCategoryCompare(Long projId);
-    List<Map<String, Object>> selectTopProjects();
+    List<AlertProjectMetricVO> selectTopProjects();
 }

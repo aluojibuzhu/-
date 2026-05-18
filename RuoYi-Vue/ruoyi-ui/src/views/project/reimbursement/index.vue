@@ -21,9 +21,9 @@
             <el-option v-for="item in nodes" :key="item.nodeId" :label="item.nodeName" :value="item.nodeId" />
           </el-select>
         </el-form-item>
-        <el-form-item label="费用类型" prop="expenseType">
-          <el-select v-model="queryParams.expenseType" clearable placeholder="全部类型">
-            <el-option v-for="dict in dict.type.exp_expense_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+        <el-form-item label="成本科目" prop="expenseType">
+          <el-select v-model="queryParams.expenseType" clearable placeholder="全部科目">
+            <el-option v-for="item in expenseCategories" :key="item.categoryId" :label="item.categoryName" :value="item.categoryName" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
@@ -47,8 +47,10 @@
         <el-table-column prop="reimburseNo" label="报销编号" width="170" align="center" />
         <el-table-column prop="projName" label="项目名称" min-width="160" align="center" show-overflow-tooltip />
         <el-table-column prop="nodeName" label="WBS节点" min-width="150" align="center" show-overflow-tooltip />
-        <el-table-column prop="categoryName" label="成本科目" min-width="130" align="center" />
-        <el-table-column label="费用类型" width="110" align="center"><template slot-scope="scope"><dict-tag :options="dict.type.exp_expense_type" :value="scope.row.expenseType" /></template></el-table-column>
+        <el-table-column prop="expenseType" label="成本科目" width="120" align="center" />
+        <el-table-column label="二级成本科目" min-width="130" align="center">
+          <template slot-scope="scope">{{ scope.row.categoryName || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="expenseDate" label="发生日期" width="120" align="center" />
         <el-table-column label="报销金额" width="130" align="center"><template slot-scope="scope">{{ formatMoney(scope.row.amount) }}</template></el-table-column>
         <el-table-column label="状态" width="100" align="center"><template slot-scope="scope"><el-tag size="small" :type="statusTag(scope.row.status)">{{ statusLabel(scope.row.status) }}</el-tag></template></el-table-column>
@@ -70,15 +72,15 @@
 <script>
 import { delReimbursement, listReimbursementWbsNodes, listReimbursements, submitReimbursement } from '@/api/project/reimbursement'
 import { listProjInfos } from '@/api/project/projInfo'
+import { listCostCategories } from '@/api/project/costCategory'
 import { canEditReimbursement, formatMoney, REIMBURSEMENT_STATUS_OPTIONS, reimbursementStatusLabel, reimbursementStatusTagType } from '@/utils/project'
 
 export default {
   name: 'Reimbursement',
-  dicts: ['exp_expense_type'],
   data() {
-    return { loading: false, list: [], total: 0, projects: [], nodes: [], dateRange: [], statusOptions: REIMBURSEMENT_STATUS_OPTIONS, queryParams: { pageNum: 1, pageSize: 10 } }
+    return { loading: false, list: [], total: 0, projects: [], nodes: [], expenseCategories: [], dateRange: [], statusOptions: REIMBURSEMENT_STATUS_OPTIONS, queryParams: { pageNum: 1, pageSize: 10 } }
   },
-  created() { this.loadProjects(); this.getList() },
+  created() { this.loadProjects(); this.loadExpenseCategories(); this.getList() },
   methods: {
     getList() {
       this.loading = true
@@ -93,6 +95,13 @@ export default {
     loadProjects() {
       return Promise.all([listProjInfos({ pageNum: 1, pageSize: 100, status: '2' }), listProjInfos({ pageNum: 1, pageSize: 100, status: '4' })])
         .then(([approved, running]) => { this.projects = [].concat(approved.rows || [], running.rows || []) })
+    },
+    loadExpenseCategories() {
+      return listCostCategories({ status: '0' }).then(res => {
+        this.expenseCategories = (res.data || []).filter(item => item.categoryLevel === 1 && Number(item.parentId || 0) === 0)
+      }).catch(() => {
+        this.expenseCategories = []
+      })
     },
     handleQueryProjectChange(value) { this.queryParams.nodeId = undefined; this.nodes = []; if (value) listReimbursementWbsNodes(value).then(res => { this.nodes = res.data || [] }) },
     handleQuery() { this.queryParams.pageNum = 1; this.getList() },

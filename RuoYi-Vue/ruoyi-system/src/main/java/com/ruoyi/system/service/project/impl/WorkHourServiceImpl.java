@@ -157,23 +157,23 @@ public class WorkHourServiceImpl implements IWorkHourService
         {
             throw new ServiceException("WBS节点与项目不匹配");
         }
+        SysCostCategory laborCategory = categoryMapper.selectRootCategoryByName(LABOR_CATEGORY_NAME);
+        if (laborCategory == null || !"0".equals(laborCategory.getStatus()))
+        {
+            throw new ServiceException("人工费科目未配置或已停用");
+        }
         SysCostCategory category = categoryMapper.selectSysCostCategoryById(workHour.getCategoryId());
         if (category == null || !"0".equals(category.getStatus()))
         {
-            throw new ServiceException("请选择有效成本科目");
+            throw new ServiceException("请选择有效工时类型");
         }
-        SysCostCategory laborCategory = categoryMapper.selectRootCategoryByName(LABOR_CATEGORY_NAME);
-        if (category.getCategoryLevel() == null || category.getCategoryLevel() != 2)
+        boolean selectedLaborChild = category.getCategoryLevel() != null
+                && category.getCategoryLevel() == 2
+                && category.getParentId() != null
+                && category.getParentId().equals(laborCategory.getCategoryId());
+        if (!selectedLaborChild)
         {
-            throw new ServiceException("请选择二级人工费类科目");
-        }
-        if (laborCategory == null || category.getParentId() == null || !category.getParentId().equals(laborCategory.getCategoryId()))
-        {
-            throw new ServiceException("请选择人工费类科目");
-        }
-        if (StringUtils.isEmpty(workHour.getWorkType()))
-        {
-            throw new ServiceException("工作类型不能为空");
+            throw new ServiceException("工时类型需来自人工费二级成本科目");
         }
         if (workHour.getWorkDate() == null)
         {
@@ -199,7 +199,9 @@ public class WorkHourServiceImpl implements IWorkHourService
         BigDecimal unitPrice = category.getUnitPrice() == null ? BigDecimal.ZERO : category.getUnitPrice();
         workHour.setProjName(info.getProjName());
         workHour.setNodeName(node.getNodeName());
+        workHour.setCategoryId(category.getCategoryId());
         workHour.setCategoryName(category.getCategoryName());
+        workHour.setWorkType(String.valueOf(category.getCategoryId()));
         workHour.setUnitPrice(unitPrice);
         workHour.setWorkCost(workHour.getWorkHours().multiply(unitPrice).setScale(2, RoundingMode.HALF_UP));
     }

@@ -25,7 +25,7 @@
         </el-form-item>
         <el-form-item label="工作类型" prop="workType">
           <el-select v-model="queryParams.workType" clearable placeholder="全部类型" class="filter-status">
-            <el-option v-for="dict in dict.type.wh_work_type" :key="dict.value" :label="dict.label" :value="dict.value" />
+            <el-option v-for="item in workTypeOptions" :key="item.categoryId" :label="item.categoryName" :value="String(item.categoryId)" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
@@ -56,7 +56,7 @@
         <el-table-column prop="projName" label="项目名称" min-width="180" align="center" show-overflow-tooltip />
         <el-table-column prop="nodeName" label="WBS节点" min-width="150" align="center" show-overflow-tooltip />
         <el-table-column label="工作类型" width="100" align="center">
-          <template slot-scope="scope"><dict-tag :options="dict.type.wh_work_type" :value="scope.row.workType" /></template>
+          <template slot-scope="scope">{{ scope.row.categoryName || '-' }}</template>
         </el-table-column>
         <el-table-column prop="workDate" label="填报日期" width="120" align="center" />
         <el-table-column label="工时数" width="100" align="center">
@@ -66,7 +66,9 @@
           <template slot-scope="scope">{{ formatMoney(scope.row.workCost) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
-          <template slot-scope="scope"><el-tag size="small" :type="statusTag(scope.row.status)">{{ statusLabel(scope.row.status) }}</el-tag></template>
+          <template slot-scope="scope">
+            <el-tag size="small" :type="statusTag(scope.row.status)" :class="statusClass(scope.row.status)">{{ statusLabel(scope.row.status) }}</el-tag>
+          </template>
         </el-table-column>
         <el-table-column label="操作" width="260" align="center" fixed="right">
           <template slot-scope="scope">
@@ -84,13 +86,13 @@
 </template>
 
 <script>
+import { listCostCategories } from '@/api/project/costCategory'
 import { listProjInfos } from '@/api/project/projInfo'
 import { delWorkHour, listWorkHours, listWorkHourWbsNodes, submitWorkHour } from '@/api/project/workHour'
-import { canEditWorkHour, formatHours, formatMoney, WORK_HOUR_STATUS_OPTIONS, workHourStatusLabel, workHourStatusTagType } from '@/utils/project'
+import { canEditWorkHour, formatHours, formatMoney, WORK_HOUR_STATUS_OPTIONS, workHourStatusLabel } from '@/utils/project'
 
 export default {
   name: 'WorkHourIndex',
-  dicts: ['wh_work_type'],
   data() {
     return {
       loading: false,
@@ -98,6 +100,7 @@ export default {
       total: 0,
       projects: [],
       nodes: [],
+      workTypeOptions: [],
       dateRange: [],
       statusOptions: WORK_HOUR_STATUS_OPTIONS,
       queryParams: { pageNum: 1, pageSize: 10, whNo: undefined, projId: undefined, nodeId: undefined, workType: undefined, status: undefined, beginWorkDate: undefined, endWorkDate: undefined }
@@ -105,6 +108,7 @@ export default {
   },
   created() {
     this.loadProjects()
+    this.loadWorkTypes()
     this.load()
   },
   methods: {
@@ -132,6 +136,13 @@ export default {
       ]).then(([approved, running]) => {
         this.projects = [].concat(approved.rows || [], running.rows || [])
       }).catch(() => this.$message.error('项目列表加载失败'))
+    },
+    loadWorkTypes() {
+      listCostCategories({ status: '0' }).then(res => {
+        const rows = res.data || []
+        const labor = rows.find(item => item.categoryLevel === 1 && Number(item.parentId || 0) === 0 && item.categoryName === '人工费')
+        this.workTypeOptions = labor ? rows.filter(item => Number(item.parentId || 0) === Number(labor.categoryId)) : []
+      }).catch(() => this.$message.error('工时类型加载失败'))
     },
     handleQueryProjectChange(projId) {
       this.queryParams.nodeId = undefined
@@ -175,7 +186,12 @@ export default {
     },
     canEdit(status) { return canEditWorkHour(status) },
     statusLabel(status) { return workHourStatusLabel(status) },
-    statusTag(status) { return workHourStatusTagType(status) },
+    statusTag(status) {
+      return ({ '0': 'info', '1': 'warning', '2': 'success', '3': 'danger', '4': 'info' })[status] || 'info'
+    },
+    statusClass(status) {
+      return status === '4' ? 'work-hour-status-posted' : ''
+    },
     formatMoney(value) { return formatMoney(value) },
     formatHours(value) { return formatHours(value) }
   }
@@ -255,5 +271,11 @@ export default {
 
 .danger-action {
   color: #ff4d4f;
+}
+
+.work-hour-status-posted {
+  color: #1890ff;
+  background: #e6f7ff;
+  border-color: #91d5ff;
 }
 </style>

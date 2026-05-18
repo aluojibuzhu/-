@@ -154,14 +154,27 @@ public class ReimbursementServiceImpl implements IReimbursementService
         {
             throw new ServiceException("WBS节点与项目不匹配");
         }
-        SysCostCategory category = categoryMapper.selectSysCostCategoryById(reimbursement.getCategoryId());
-        if (category == null || !"0".equals(category.getStatus()) || category.getCategoryLevel() == null || category.getCategoryLevel() != 2)
-        {
-            throw new ServiceException("请选择有效二级成本科目");
-        }
         if (StringUtils.isEmpty(reimbursement.getExpenseType()))
         {
-            throw new ServiceException("费用类型不能为空");
+            throw new ServiceException("成本科目不能为空");
+        }
+        SysCostCategory rootCategory = categoryMapper.selectRootCategoryByName(reimbursement.getExpenseType());
+        if (rootCategory == null || !"0".equals(rootCategory.getStatus()))
+        {
+            throw new ServiceException("请选择有效一级成本科目");
+        }
+        SysCostCategory childCategory = null;
+        if (reimbursement.getCategoryId() != null)
+        {
+            childCategory = categoryMapper.selectSysCostCategoryById(reimbursement.getCategoryId());
+            if (childCategory == null || !"0".equals(childCategory.getStatus()) || childCategory.getCategoryLevel() == null || childCategory.getCategoryLevel() != 2)
+            {
+                throw new ServiceException("请选择有效二级成本科目");
+            }
+            if (childCategory.getParentId() == null || !childCategory.getParentId().equals(rootCategory.getCategoryId()))
+            {
+                throw new ServiceException("二级成本科目需归属于所选成本科目");
+            }
         }
         if (reimbursement.getExpenseDate() == null)
         {
@@ -190,7 +203,8 @@ public class ReimbursementServiceImpl implements IReimbursementService
         reimbursement.setAmount(reimbursement.getAmount().setScale(2, RoundingMode.HALF_UP));
         reimbursement.setProjName(info.getProjName());
         reimbursement.setNodeName(node.getNodeName());
-        reimbursement.setCategoryName(category.getCategoryName());
+        reimbursement.setExpenseType(rootCategory.getCategoryName());
+        reimbursement.setCategoryName(childCategory == null ? null : childCategory.getCategoryName());
     }
 
     private void saveAttachments(Long reimburseId, List<ReimbursementAttachment> attachments, String username)

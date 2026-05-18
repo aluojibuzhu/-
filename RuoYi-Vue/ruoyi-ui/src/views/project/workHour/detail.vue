@@ -37,11 +37,10 @@
         <div class="detail-item"><span class="detail-label">WBS节点</span><span class="detail-value">{{ form.workHour.nodeName }}</span></div>
       </div>
       <div class="detail-row">
-        <div class="detail-item"><span class="detail-label">成本科目</span><span class="detail-value">{{ form.workHour.categoryName }}</span></div>
-        <div class="detail-item"><span class="detail-label">工作类型</span><span class="detail-value">{{ workTypeLabel(form.workHour.workType) }}</span></div>
+        <div class="detail-item"><span class="detail-label">工时类型</span><span class="detail-value">{{ form.workHour.categoryName || '-' }}</span></div>
+        <div class="detail-item"><span class="detail-label">填报日期</span><span class="detail-value">{{ form.workHour.workDate }}</span></div>
       </div>
       <div class="detail-row">
-        <div class="detail-item"><span class="detail-label">填报日期</span><span class="detail-value">{{ form.workHour.workDate }}</span></div>
         <div class="detail-item"><span class="detail-label">填报人</span><span class="detail-value">{{ form.workHour.createBy || '-' }}</span></div>
       </div>
     </div>
@@ -86,7 +85,6 @@ import { formatHours, formatMoney, workHourStatusLabel, workHourStatusTagType } 
 
 export default {
   name: 'WorkHourDetail',
-  dicts: ['wh_work_type'],
   data() {
     return {
       loading: false,
@@ -150,9 +148,6 @@ export default {
       }).catch(() => this.$message.error('入账失败')).finally(() => {
         this.submitting = false
       })
-    },
-    workTypeLabel(value) {
-      return this.selectDictLabel(this.dict.type.wh_work_type, value) || value || '-'
     },
     fileName(item) {
       return item.originalName || item.fileName || (item.filePath || '').split('/').pop()

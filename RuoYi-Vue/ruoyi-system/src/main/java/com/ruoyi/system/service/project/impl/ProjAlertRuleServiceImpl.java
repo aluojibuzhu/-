@@ -1,5 +1,6 @@
 package com.ruoyi.system.service.project.impl;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,8 @@ import com.ruoyi.system.service.project.IProjAlertRuleService;
 @Service
 public class ProjAlertRuleServiceImpl implements IProjAlertRuleService
 {
+    private static final BigDecimal MAX_THRESHOLD = new BigDecimal("100000000");
+
     @Autowired
     private ProjAlertRuleMapper alertRuleMapper;
 
@@ -45,11 +48,20 @@ public class ProjAlertRuleServiceImpl implements IProjAlertRuleService
 
     public int toggleAlertRule(Long ruleId, String enabled, String username)
     {
+        if (ruleId == null)
+        {
+            throw new ServiceException("规则ID不能为空");
+        }
         if (!"0".equals(enabled) && !"1".equals(enabled))
         {
             throw new ServiceException("启用状态不合法");
         }
-        return alertRuleMapper.updateAlertRuleEnabled(ruleId, enabled, username);
+        int rows = alertRuleMapper.updateAlertRuleEnabled(ruleId, enabled, username);
+        if (rows == 0)
+        {
+            throw new ServiceException("规则不存在或已被删除");
+        }
+        return rows;
     }
 
     public int deleteAlertRuleByIds(Long[] ruleIds)
@@ -67,25 +79,49 @@ public class ProjAlertRuleServiceImpl implements IProjAlertRuleService
         {
             throw new ServiceException("规则类型不能为空");
         }
+        if (!isOneOf(rule.getRuleType(), "EXEC_RATE", "SINGLE_AMOUNT", "BALANCE_RATE", "OVERDUE", "INACTIVE"))
+        {
+            throw new ServiceException("规则类型不合法");
+        }
         if (StringUtils.isEmpty(rule.getAlertLevel()))
         {
             throw new ServiceException("预警级别不能为空");
+        }
+        if (!isOneOf(rule.getAlertLevel(), "1", "2", "3"))
+        {
+            throw new ServiceException("预警级别不合法");
         }
         if (rule.getThresholdValue() == null)
         {
             throw new ServiceException("阈值不能为空");
         }
+        if (rule.getThresholdValue().compareTo(BigDecimal.ZERO) < 0 || rule.getThresholdValue().compareTo(MAX_THRESHOLD) > 0)
+        {
+            throw new ServiceException("阈值范围不合法");
+        }
         if (StringUtils.isEmpty(rule.getCompareOperator()))
         {
             rule.setCompareOperator(">=");
+        }
+        if (!isOneOf(rule.getCompareOperator(), ">", ">=", "<", "<=", "=", "=="))
+        {
+            throw new ServiceException("比较符不合法");
         }
         if (StringUtils.isEmpty(rule.getScopeType()))
         {
             rule.setScopeType("0");
         }
+        if (!isOneOf(rule.getScopeType(), "0", "1", "2"))
+        {
+            throw new ServiceException("适用范围不合法");
+        }
         if (StringUtils.isEmpty(rule.getNotifyEnabled()))
         {
             rule.setNotifyEnabled("1");
+        }
+        if (!isOneOf(rule.getNotifyEnabled(), "0", "1"))
+        {
+            throw new ServiceException("通知状态不合法");
         }
         if (StringUtils.isEmpty(rule.getNotifyChannels()))
         {
@@ -95,9 +131,29 @@ public class ProjAlertRuleServiceImpl implements IProjAlertRuleService
         {
             rule.setNotifySilenceHours(24);
         }
+        if (rule.getNotifySilenceHours() < 0 || rule.getNotifySilenceHours() > 720)
+        {
+            throw new ServiceException("静默小时范围不合法");
+        }
         if (StringUtils.isEmpty(rule.getEnabled()))
         {
             rule.setEnabled("1");
         }
+        if (!isOneOf(rule.getEnabled(), "0", "1"))
+        {
+            throw new ServiceException("启用状态不合法");
+        }
+    }
+
+    private boolean isOneOf(String value, String... options)
+    {
+        for (String option : options)
+        {
+            if (option.equals(value))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

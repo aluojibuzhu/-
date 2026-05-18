@@ -22,8 +22,8 @@
         <div class="detail-item"><span class="detail-label">WBS节点</span><span class="detail-value">{{ form.reimbursement.nodeName }}</span></div>
       </div>
       <div class="detail-row">
-        <div class="detail-item"><span class="detail-label">成本科目</span><span class="detail-value">{{ form.reimbursement.categoryName }}</span></div>
-        <div class="detail-item"><span class="detail-label">费用类型</span><span class="detail-value">{{ expenseTypeLabel(form.reimbursement.expenseType) }}</span></div>
+        <div class="detail-item"><span class="detail-label">成本科目</span><span class="detail-value">{{ expenseTypeLabel(form.reimbursement.expenseType) }}</span></div>
+        <div class="detail-item"><span class="detail-label">二级成本科目</span><span class="detail-value">{{ form.reimbursement.categoryName || '-' }}</span></div>
       </div>
       <div class="detail-row">
         <div class="detail-item detail-item-full"><span class="detail-label">费用说明</span><span class="detail-value">{{ form.reimbursement.expenseDesc || '-' }}</span></div>
@@ -59,7 +59,6 @@ import { formatMoney, reimbursementStatusLabel, reimbursementStatusTagType } fro
 
 export default {
   name: 'ReimbursementDetail',
-  dicts: ['exp_expense_type'],
   data() { return { loading: false, submitting: false, baseUrl: process.env.VUE_APP_BASE_API, form: { reimbursement: null, attachments: [] } } },
   created() { this.load() },
   methods: {
@@ -97,7 +96,7 @@ export default {
         this.load()
       }).catch(() => this.$message.error('入账失败')).finally(() => { this.submitting = false })
     },
-    expenseTypeLabel(value) { const item = this.dict.type.exp_expense_type.find(i => i.value === value); return item ? item.label : value },
+    expenseTypeLabel(value) { return value || '-' },
     statusLabel(status) { return reimbursementStatusLabel(status) },
     statusTag(status) { return reimbursementStatusTagType(status) },
     formatMoney

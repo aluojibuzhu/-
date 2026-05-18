@@ -44,6 +44,17 @@
             <div ref="trendChart" class="chart"></div>
           </div>
           <div class="chart-caption">{{ selectedProjectName }}</div>
+          <div class="trend-category-switch">
+            <el-tooltip v-for="item in trendCategoryOptions" :key="item.key" :content="item.name" placement="top">
+              <button
+                type="button"
+                class="trend-category-dot"
+                :class="{ active: String(item.categoryId || '') === String(selectedTrendCategoryId || '') }"
+                :style="{ background: item.color }"
+                @click="handleTrendCategorySelect(item)"
+              ></button>
+            </el-tooltip>
+          </div>
         </section>
 
         <section class="chart-card">
@@ -92,6 +103,7 @@
             :data="filteredProjectRows"
             border
             size="small"
+            height="360"
             row-key="projId"
             :row-class-name="projectRowClassName"
             @row-click="handleProjectSelect"
@@ -121,10 +133,10 @@
             <el-table-column label="黄" width="64" align="center">
               <template slot-scope="scope"><span class="count yellow">{{ scope.row.yellowCount || 0 }}</span></template>
             </el-table-column>
-            <el-table-column label="计划开始" width="120" align="center">
+            <el-table-column label="预计开工" width="120" align="center">
               <template slot-scope="scope">{{ formatDate(scope.row.planStartDate) }}</template>
             </el-table-column>
-            <el-table-column label="计划结束" width="120" align="center">
+            <el-table-column label="预计竣工" width="120" align="center">
               <template slot-scope="scope">{{ formatDate(scope.row.planEndDate) }}</template>
             </el-table-column>
             <el-table-column label="预算总额" width="140" align="right">
@@ -132,6 +144,11 @@
             </el-table-column>
             <el-table-column label="实际成本" width="140" align="right">
               <template slot-scope="scope">{{ formatMoney(scope.row.actualCost) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="96" align="center">
+              <template slot-scope="scope">
+                <el-button type="text" icon="el-icon-view" @click.stop="openProjectDetail(scope.row)">详情</el-button>
+              </template>
             </el-table-column>
           </el-table>
         </div>
@@ -143,6 +160,7 @@
 <script>
 import * as echarts from 'echarts'
 import { getAlertSummary, getAlertTop10, getBudgetTrend, getCategoryCompare, getProjectHealth } from '@/api/project/alertDashboard'
+import { listCostCategories } from '@/api/project/costCategory'
 import { formatMoney } from '@/utils/project'
 
 const CATEGORY_COLORS = ['rgba(24,144,255,.78)', '#16a34a', '#f97316', '#dc2626', '#8b5cf6', '#14b8a6', '#ca8a04', '#64748b']
@@ -157,9 +175,13 @@ export default {
       healthList: [],
       trendList: [],
       categoryList: [],
+      rootCostCategories: [],
       topList: [],
       selectedProjId: null,
       selectedProjectName: '全部项目',
+      selectedTrendCategoryId: null,
+      selectedTrendCategoryName: '总计',
+      selectedTrendCategoryColor: CATEGORY_COLORS[0],
       trendPeriodType: 'month',
       tableQuery: {
         keyword: '',
@@ -201,16 +223,33 @@ export default {
         color: CATEGORY_COLORS[index]
       }))
     },
-    mergedProjectRows() {
-      const healthMap = new Map(this.healthList.map(item => [String(item.projId), item]))
-      const rows = this.topList.map(item => {
-        const health = healthMap.get(String(item.projId)) || {}
-        return { ...health, ...item }
+    trendCategoryOptions() {
+      const options = [{
+        key: 'total',
+        categoryId: null,
+        name: '总计',
+        color: CATEGORY_COLORS[0]
+      }]
+      this.rootCostCategories.forEach((item, index) => {
+        options.push({
+          key: 'category-' + item.categoryId,
+          categoryId: item.categoryId,
+          name: item.categoryName || '未分类',
+          color: CATEGORY_COLORS[(index + 1) % CATEGORY_COLORS.length]
+        })
       })
-      if (rows.length) {
-        return rows
-      }
-      return this.healthList.slice().sort((a, b) => Number(b.execRate || 0) - Number(a.execRate || 0)).slice(0, 10)
+      return options
+    },
+    mergedProjectRows() {
+      const rowMap = new Map()
+      this.healthList.forEach(item => {
+        rowMap.set(String(item.projId), { ...item })
+      })
+      this.topList.forEach(item => {
+        const key = String(item.projId)
+        rowMap.set(key, this.mergeProjectRow(rowMap.get(key) || {}, item))
+      })
+      return Array.from(rowMap.values()).sort((a, b) => Number(b.execRate || 0) - Number(a.execRate || 0))
     },
     filteredProjectRows() {
       const keyword = String(this.tableQuery.keyword || '').trim().toLowerCase()
@@ -251,14 +290,22 @@ export default {
     formatMoney,
     loadData() {
       this.loading = true
-      Promise.all([getAlertSummary(), getProjectHealth(), getAlertTop10()]).then(res => {
+      Promise.all([getAlertSummary(), getProjectHealth(), getAlertTop10(), this.loadRootCostCategories()]).then(res => {
         this.summary = res[0].data || {}
         this.healthList = res[1].data || []
         this.topList = res[2].data || []
         this.ensureSelectedProject()
         return this.loadChartData(this.selectedProjId)
+      }).catch(() => {
+        this.$message.error('预警看板数据加载失败')
       }).finally(() => {
         this.loading = false
+      })
+    },
+    loadRootCostCategories() {
+      return listCostCategories({ status: '0' }).then(res => {
+        const rows = res.data || []
+        this.rootCostCategories = rows.filter(item => item.categoryLevel === 1 && Number(item.parentId || 0) === 0)
       })
     },
     ensureSelectedProject() {
@@ -279,9 +326,18 @@ export default {
     loadChartData(projId) {
       this.chartLoading = true
       const query = projId ? { projId, periodType: 'day' } : { periodType: 'day' }
+      if (this.selectedTrendCategoryId) {
+        query.categoryId = this.selectedTrendCategoryId
+      }
       return Promise.all([getBudgetTrend(query), getCategoryCompare(query)]).then(res => {
         this.trendList = res[0].data || []
         this.categoryList = res[1].data || []
+        this.ensureTrendCategorySelection()
+        this.$nextTick(this.renderCharts)
+      }).catch(() => {
+        this.trendList = []
+        this.categoryList = []
+        this.$message.error('图表数据加载失败')
         this.$nextTick(this.renderCharts)
       }).finally(() => {
         this.chartLoading = false
@@ -296,7 +352,26 @@ export default {
       }
       this.selectedProjId = row.projId
       this.selectedProjectName = row.projName || '当前项目'
+      this.setTrendCategory(null)
       this.loadChartData(row.projId)
+    },
+    handleTrendCategorySelect(item) {
+      const nextId = item ? item.categoryId : null
+      if (String(nextId || '') === String(this.selectedTrendCategoryId || '')) {
+        return
+      }
+      this.setTrendCategory(item)
+      this.loadChartData(this.selectedProjId)
+    },
+    setTrendCategory(item) {
+      this.selectedTrendCategoryId = item && item.categoryId ? item.categoryId : null
+      this.selectedTrendCategoryName = item && item.name ? item.name : '总计'
+      this.selectedTrendCategoryColor = item && item.color ? item.color : CATEGORY_COLORS[0]
+    },
+    ensureTrendCategorySelection() {
+      const currentKey = String(this.selectedTrendCategoryId || '')
+      const selected = this.trendCategoryOptions.find(item => String(item.categoryId || '') === currentKey)
+      this.setTrendCategory(selected || this.trendCategoryOptions[0])
     },
     projectRowClassName({ row }) {
       return String(row.projId) === String(this.selectedProjId) ? 'project-row-selected' : ''
@@ -304,6 +379,21 @@ export default {
     projectRank(row) {
       const index = this.mergedProjectRows.findIndex(item => String(item.projId) === String(row.projId))
       return index >= 0 ? index + 1 : '-'
+    },
+    openProjectDetail(row) {
+      if (!row || !row.projId) {
+        this.$message.warning('项目ID不存在，无法打开详情')
+        return
+      }
+      this.$router.push('/project/projInfo/detail/' + row.projId)
+    },
+    mergeProjectRow(base, next) {
+      return {
+        ...base,
+        ...next,
+        planStartDate: next.planStartDate || base.planStartDate,
+        planEndDate: next.planEndDate || base.planEndDate
+      }
     },
     matchAlertFilter(row) {
       const level = this.tableQuery.alertLevel
@@ -416,14 +506,15 @@ export default {
       const labelInterval = this.trendPeriodType === 'day' && trendData.length > 30 ? Math.ceil(trendData.length / 8) : 0
       const zoomStart = showZoom ? Math.max(0, 100 - (45 / trendData.length) * 100) : 0
       const axisUnit = this.resolveAmountAxisUnit(trendData)
+      const lineColor = this.selectedTrendCategoryColor || CATEGORY_COLORS[0]
       this.trendChart.setOption({
-        color: ['rgba(24,144,255,.82)'],
+        color: [lineColor],
         grid: { left: 76, right: 20, top: 32, bottom: showZoom ? 72 : 44 },
         tooltip: {
           trigger: 'axis',
           formatter: params => {
             const point = params && params[0] ? params[0] : {}
-            return point.axisValue + '<br/>' + point.marker + '入账金额：' + this.formatMoney(point.data || 0)
+            return point.axisValue + '<br/>' + point.marker + this.selectedTrendCategoryName + '：' + this.formatMoney(point.data || 0)
           }
         },
         xAxis: {
@@ -474,8 +565,8 @@ export default {
           areaStyle: {
             opacity: 0.18,
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(24,144,255,.20)' },
-              { offset: 1, color: 'rgba(24,144,255,0)' }
+              { offset: 0, color: lineColor },
+              { offset: 1, color: 'rgba(255,255,255,0)' }
             ])
           }
         }]
@@ -714,6 +805,31 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.trend-category-switch {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 2px;
+}
+.trend-category-dot {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #d9e1ec;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.trend-category-dot:hover {
+  transform: scale(1.16);
+}
+.trend-category-dot.active {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 2px var(--color-primary), 0 3px 8px rgba(24, 144, 255, .22);
+}
 .chart-legend {
   min-height: 34px;
   margin-top: 6px;
@@ -778,13 +894,6 @@ export default {
 }
 .table-scroll {
   width: 100%;
-  height: 360px;
-  overflow-x: auto;
-  overflow-y: scroll;
-  padding-bottom: 2px;
-}
-.table-scroll ::v-deep .el-table {
-  min-width: 1480px;
 }
 .table-scroll ::v-deep .el-table::before {
   display: none;
