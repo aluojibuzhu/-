@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.CostReportMapper">
+  <sql id="ReportWhere">
+    where coalesce(r.post_time, r.create_time) &gt;= concat(#{query.beginDate}, ' 00:00:00')
+      and coalesce(r.post_time, r.create_time) &lt;= concat(#{query.endDate}, ' 23:59:59')
+    <if test="query.projIds != null and query.projIds.size() > 0">
+      and r.proj_id in
+      <foreach collection="query.projIds" item="projId" open="(" separator="," close=")">#{projId}</foreach>
+    </if>
+    <if test="query.categoryIds != null and query.categoryIds.size() > 0">
+      and (
+        root.category_id in
+        <foreach collection="query.categoryIds" item="categoryId" open="(" separator="," close=")">#{categoryId}</foreach>
+        or category.category_id in
+        <foreach collection="query.categoryIds" item="categoryId" open="(" separator="," close=")">#{categoryId}</foreach>
+      )
+    </if>
+    <if test="query.nodeIds != null and query.nodeIds.size() > 0">
+      and r.node_id in
+      <foreach collection="query.nodeIds" item="nodeId" open="(" separator="," close=")">#{nodeId}</foreach>
+    </if>
+    <if test="query.approvers != null and query.approvers.size() > 0">
+      and r.post_by in
+      <foreach collection="query.approvers" item="approver" open="(" separator="," close=")">#{approver}</foreach>
+    </if>
+  </sql>
+
+  <sql id="PostingDateWhere">
+    coalesce(r.post_time, r.create_time) &gt;= concat(#{beginDate}, ' 00:00:00')
+    and coalesce(r.post_time, r.create_time) &lt;= concat(#{endDate}, ' 23:59:59')
+  </sql>
+
+  <sql id="QueryProjectFilter">
+    <if test="projIds != null and projIds.size() > 0">
+      and p.proj_id in
+      <foreach collection="projIds" item="projId" open="(" separator="," close=")">#{projId}</foreach>
+    </if>
+  </sql>
+
+  <sql id="PostingProjectFilter">
+    <if test="projIds != null and projIds.size() > 0">
+      and r.proj_id in
+      <foreach collection="projIds" item="projId" open="(" separator="," close=")">#{projId}</foreach>
+    </if>
+  </sql>
+
+  <select id="selectProjectSummary" parameterType="com.ruoyi.system.domain.vo.project.CostReportQuery" resultType="java.util.LinkedHashMap">
+    select p.proj_id as projId,
+           p.proj_no as projNo,
+           p.proj_name as projName,
+           ifnull(p.contract_amount, 0) as contractAmount,
+           ifnull(p.total_budget, 0) as totalBudget,
+           ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) as actualCost,
+           ifnull(p.total_budget, 0) - ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) as budgetBalance,
+           ifnull(p.contract_amount, 0) - ifnull(p.total_budget, 0) as profitMargin,
+           case when ifnull(p.total_budget, 0) = 0 then 0
+                else round(ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) / p.total_budget * 100, 2)
+           end as execRate
+    from proj_info p
+    left join cost_posting_record r on r.proj_id = p.proj_id
+    where p.del_flag = '0'
+    <include refid="QueryProjectFilter"/>
+    group by p.proj_id, p.proj_no, p.proj_name, p.contract_amount, p.total_budget
+    order by execRate desc, p.create_time desc
+  </select>
+
+  <select id="selectCategoryDetail" parameterType="com.ruoyi.system.domain.vo.project.CostReportQuery" resultType="java.util.LinkedHashMap">
+    select p.proj_id as projId,
+           p.proj_name as projName,
+           coalesce(root.category_id, category.category_id, a.category_id) as rootCategoryId,
+           coalesce(root.category_name, category.category_name, a.category_name, '未分类') as rootCategoryName,
+           case when category.parent_id is not null and category.parent_id != 0 then category.category_id else null end as childCategoryId,
+           case when category.parent_id is not null and category.parent_id != 0 then category.category_name else '' end as childCategoryName,
+           ifnull(sum(distinct a.allocation_amount), 0) as budgetAmount,
+           ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) as actualCost,
+           ifnull(sum(distinct a.allocation_amount), 0) - ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) as budgetBalance,
+           case when ifnull(sum(distinct a.allocation_amount), 0) = 0 then 0
+                else round(ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) / sum(distinct a.allocation_amount) * 100, 2)
+           end as execRate
+    from proj_cost_allocation a
+    inner join proj_info p on p.proj_id = a.proj_id and p.del_flag = '0'
+    left join sys_cost_category category on category.category_id = a.category_id and category.del_flag = '0'
+    left join sys_cost_category root on root.category_id = case when ifnull(category.parent_id, 0) = 0 then category.category_id else category.parent_id end and root.del_flag = '0'
+    left join cost_posting_record r on r.proj_id = a.proj_id and r.node_id = a.node_id and r.category_id = a.category_id
+    where a.del_flag = '0'
+    <include refid="QueryProjectFilter"/>
+    <if test="categoryIds != null and categoryIds.size() > 0">
+      and (coalesce(root.category_id, category.category_id, a.category_id) in
+      <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">#{categoryId}</foreach>
+      or a.category_id in
+      <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">#{categoryId}</foreach>)
+    </if>
+    group by p.proj_id, p.proj_name,
+             coalesce(root.category_id, category.category_id, a.category_id),
+             coalesce(root.category_name, category.category_name, a.category_name, '未分类'),
+             case when category.parent_id is not null and category.parent_id != 0 then category.category_id else null end,
+             case when category.parent_id is not null and category.parent_id != 0 then category.category_name else '' end
+    order by p.proj_name asc, rootCategoryName asc, childCategoryName asc
+  </select>
+
+  <select id="selectPostingFlow" parameterType="com.ruoyi.system.domain.vo.project.CostReportQuery" resultType="java.util.LinkedHashMap">
+    select r.record_id as recordId,
+           r.bill_no as billNo,
+           r.proj_name as projName,
+           case r.bill_type when 'WORK_HOUR' then '工时' when 'REIMBURSEMENT' then '报销' else r.bill_type end as billTypeName,
+           coalesce(root.category_name, category.category_name, r.category_name, '未分类') as categoryName,
+           r.amount as amount,
+           date_format(coalesce(r.post_time, r.create_time), '%Y-%m-%d') as postDate,
+           r.post_by as approver
+    from cost_posting_record r
+    left join sys_cost_category category on category.category_id = r.category_id and category.del_flag = '0'
+    left join sys_cost_category root on root.category_id = case when ifnull(category.parent_id, 0) = 0 then category.category_id else category.parent_id end and root.del_flag = '0'
+    where <include refid="PostingDateWhere"/>
+    <include refid="PostingProjectFilter"/>
+    <if test="billType != null and billType != ''">and r.bill_type = #{billType}</if>
+    <if test="categoryIds != null and categoryIds.size() > 0">
+      and (
+        coalesce(root.category_id, category.category_id, r.category_id) in
+        <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">#{categoryId}</foreach>
+        or r.category_id in
+        <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">#{categoryId}</foreach>
+      )
+    </if>
+    <if test="approvers != null and approvers.size() > 0">
+      and r.post_by in
+      <foreach collection="approvers" item="approver" open="(" separator="," close=")">#{approver}</foreach>
+    </if>
+    order by coalesce(r.post_time, r.create_time) desc, r.record_id desc
+  </select>
+
+  <select id="selectNodeExecution" parameterType="com.ruoyi.system.domain.vo.project.CostReportQuery" resultType="java.util.LinkedHashMap">
+    select p.proj_id as projId,
+           p.proj_name as projName,
+           n.node_id as nodeId,
+           n.node_no as nodeNo,
+           n.node_name as nodeName,
+           ifnull(n.node_budget, 0) as nodeBudget,
+           ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) as actualCost,
+           ifnull(n.node_budget, 0) - ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) as budgetBalance,
+           case when ifnull(n.node_budget, 0) = 0 then 0
+                else round(ifnull(sum(case when <include refid="PostingDateWhere"/> then r.amount else 0 end), 0) / n.node_budget * 100, 2)
+           end as execRate,
+           date_format(n.plan_finish_date, '%Y-%m-%d') as planFinishDate
+    from proj_wbs_node n
+    inner join proj_info p on p.proj_id = n.proj_id and p.del_flag = '0'
+    left join cost_posting_record r on r.node_id = n.node_id and r.proj_id = n.proj_id
+    where n.del_flag = '0'
+    <include refid="QueryProjectFilter"/>
+    <if test="nodeIds != null and nodeIds.size() > 0">
+      and n.node_id in
+      <foreach collection="nodeIds" item="nodeId" open="(" separator="," close=")">#{nodeId}</foreach>
+    </if>
+    group by p.proj_id, p.proj_name, n.node_id, n.node_no, n.node_name, n.node_budget, n.plan_finish_date
+    order by p.proj_name asc, n.order_num asc, n.node_id asc
+  </select>
+
+  <select id="selectReportRows" resultType="java.util.LinkedHashMap">
+    select
+      <choose>
+        <when test="query.groupBy != null and query.groupBy.contains('project')">
+          r.proj_id as projId, coalesce(p.proj_no, '') as projNo, coalesce(p.proj_name, r.proj_name) as projName,
+        </when>
+        <otherwise>
+          null as projId, null as projNo, null as projName,
+        </otherwise>
+      </choose>
+      <choose>
+        <when test="query.groupBy != null and query.groupBy.contains('category')">
+          coalesce(root.category_id, category.category_id, r.category_id) as categoryId,
+          coalesce(root.category_name, category.category_name, r.category_name, '未分类') as categoryName,
+        </when>
+        <otherwise>
+          null as categoryId, null as categoryName,
+        </otherwise>
+      </choose>
+      <choose>
+        <when test="query.groupBy != null and query.groupBy.contains('node')">
+          r.node_id as nodeId, coalesce(node.node_name, r.node_name) as nodeName,
+        </when>
+        <otherwise>
+          null as nodeId, null as nodeName,
+        </otherwise>
+      </choose>
+      <choose>
+        <when test="query.groupBy != null and query.groupBy.contains('month')">
+          date_format(coalesce(r.post_time, r.create_time), '%Y-%m') as postingMonth,
+        </when>
+        <otherwise>
+          null as postingMonth,
+        </otherwise>
+      </choose>
+      count(1) as recordCount,
+      ifnull(sum(r.amount), 0) as amount
+    from cost_posting_record r
+    left join proj_info p on p.proj_id = r.proj_id and p.del_flag = '0'
+    left join proj_wbs_node node on node.node_id = r.node_id and node.del_flag = '0'
+    left join sys_cost_category category on category.category_id = r.category_id and category.del_flag = '0'
+    left join sys_cost_category root on root.category_id = case when ifnull(category.parent_id, 0) = 0 then category.category_id else category.parent_id end and root.del_flag = '0'
+    <include refid="ReportWhere"/>
+    <if test="query.groupBy != null and query.groupBy.size() > 0">
+      group by
+      <trim suffixOverrides=",">
+        <if test="query.groupBy.contains('project')">r.proj_id, coalesce(p.proj_no, ''), coalesce(p.proj_name, r.proj_name),</if>
+        <if test="query.groupBy.contains('category')">coalesce(root.category_id, category.category_id, r.category_id), coalesce(root.category_name, category.category_name, r.category_name, '未分类'),</if>
+        <if test="query.groupBy.contains('node')">r.node_id, coalesce(node.node_name, r.node_name),</if>
+        <if test="query.groupBy.contains('month')">date_format(coalesce(r.post_time, r.create_time), '%Y-%m'),</if>
+      </trim>
+    </if>
+    order by postingMonth asc, projName asc, categoryName asc, nodeName asc
+    <if test="limit != null and limit > 0">limit #{limit}</if>
+  </select>
+
+  <select id="selectProjectOptions" resultType="java.util.HashMap">
+    select proj_id as value, concat(proj_no, ' ', proj_name) as label
+    from proj_info
+    where del_flag = '0'
+    order by create_time desc
+  </select>
+
+  <select id="selectCategoryOptions" resultType="java.util.HashMap">
+    select category_id as value, category_name as label
+    from sys_cost_category
+    where del_flag = '0' and status = '0' and category_level = 1
+    order by order_num asc, category_id asc
+  </select>
+
+  <select id="selectNodeOptions" resultType="java.util.HashMap">
+    select n.node_id as value, concat(p.proj_no, ' / ', n.node_name) as label, n.proj_id as projId
+    from proj_wbs_node n
+    inner join proj_info p on p.proj_id = n.proj_id and p.del_flag = '0'
+    where n.del_flag = '0'
+    order by p.create_time desc, n.node_id asc
+  </select>
+
+  <select id="selectApproverOptions" resultType="java.util.HashMap">
+    select distinct post_by as value, post_by as label
+    from cost_posting_record
+    where post_by is not null and post_by != ''
+    order by post_by asc
+  </select>
+</mapper>

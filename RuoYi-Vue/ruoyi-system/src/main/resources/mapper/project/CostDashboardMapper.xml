@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.project.CostDashboardMapper">
+  <resultMap id="SummaryResult" type="com.ruoyi.system.domain.vo.project.CostDashboardSummaryVO">
+    <result property="projectCount" column="project_count"/>
+    <result property="totalBudget" column="total_budget"/>
+    <result property="actualCost" column="actual_cost"/>
+    <result property="budgetBalance" column="budget_balance"/>
+    <result property="contractAmount" column="contract_amount"/>
+    <result property="profitMargin" column="profit_margin"/>
+    <result property="monthPostingAmount" column="month_posting_amount"/>
+    <result property="lastMonthPostingAmount" column="last_month_posting_amount"/>
+  </resultMap>
+
+  <resultMap id="ProjectResult" type="com.ruoyi.system.domain.vo.project.CostDashboardProjectVO">
+    <id property="projId" column="proj_id"/>
+    <result property="projNo" column="proj_no"/>
+    <result property="projName" column="proj_name"/>
+    <result property="status" column="status"/>
+    <result property="contractAmount" column="contract_amount"/>
+    <result property="totalBudget" column="total_budget"/>
+    <result property="actualCost" column="actual_cost"/>
+    <result property="budgetBalance" column="budget_balance"/>
+    <result property="profitMargin" column="profit_margin"/>
+    <result property="monthPostingAmount" column="month_posting_amount"/>
+    <result property="execRate" column="exec_rate"/>
+  </resultMap>
+
+  <select id="selectSummary" resultMap="SummaryResult">
+    select
+      count(1) as project_count,
+      ifnull(sum(ifnull(p.total_budget, 0)), 0) as total_budget,
+      ifnull(sum(ifnull(p.actual_cost, 0)), 0) as actual_cost,
+      ifnull(sum(ifnull(p.budget_balance, ifnull(p.total_budget, 0) - ifnull(p.actual_cost, 0))), 0) as budget_balance,
+      ifnull(sum(ifnull(p.contract_amount, 0)), 0) as contract_amount,
+      ifnull(sum(ifnull(p.contract_amount, 0) - ifnull(p.total_budget, 0)), 0) as profit_margin,
+      (
+        select ifnull(sum(c.amount), 0)
+        from cost_posting_record c
+        inner join proj_info p2 on p2.proj_id = c.proj_id and p2.del_flag = '0'
+        where date_format(coalesce(c.post_time, c.create_time), '%Y-%m') = date_format(curdate(), '%Y-%m')
+        <if test="statusList != null and statusList.size() > 0">
+          and p2.status in
+          <foreach collection="statusList" item="status" open="(" separator="," close=")">#{status}</foreach>
+        </if>
+      ) as month_posting_amount,
+      (
+        select ifnull(sum(c.amount), 0)
+        from cost_posting_record c
+        inner join proj_info p2 on p2.proj_id = c.proj_id and p2.del_flag = '0'
+        where date_format(coalesce(c.post_time, c.create_time), '%Y-%m') = date_format(date_sub(curdate(), interval 1 month), '%Y-%m')
+        <if test="statusList != null and statusList.size() > 0">
+          and p2.status in
+          <foreach collection="statusList" item="status" open="(" separator="," close=")">#{status}</foreach>
+        </if>
+      ) as last_month_posting_amount
+    from proj_info p
+    where p.del_flag = '0'
+    <if test="statusList != null and statusList.size() > 0">
+      and p.status in
+      <foreach collection="statusList" item="status" open="(" separator="," close=")">#{status}</foreach>
+    </if>
+  </select>
+
+  <select id="selectProjectList" resultMap="ProjectResult">
+    select p.proj_id, p.proj_no, p.proj_name, p.status,
+           ifnull(p.contract_amount, 0) as contract_amount,
+           ifnull(p.total_budget, 0) as total_budget,
+           ifnull(p.actual_cost, 0) as actual_cost,
+           ifnull(p.budget_balance, ifnull(p.total_budget, 0) - ifnull(p.actual_cost, 0)) as budget_balance,
+           ifnull(p.contract_amount, 0) - ifnull(p.total_budget, 0) as profit_margin,
+           ifnull(sum(case when date_format(coalesce(c.post_time, c.create_time), '%Y-%m') = date_format(curdate(), '%Y-%m') then c.amount else 0 end), 0) as month_posting_amount,
+           case when ifnull(p.total_budget, 0) = 0 then 0 else round(ifnull(p.actual_cost, 0) / p.total_budget * 100, 2) end as exec_rate
+    from proj_info p
+    left join cost_posting_record c on c.proj_id = p.proj_id
+    where p.del_flag = '0'
+    <if test="statusList != null and statusList.size() > 0">
+      and p.status in
+      <foreach collection="statusList" item="status" open="(" separator="," close=")">#{status}</foreach>
+    </if>
+    <if test="keyword != null and keyword != ''">
+      and (p.proj_name like concat('%', #{keyword}, '%') or p.proj_no like concat('%', #{keyword}, '%'))
+    </if>
+    group by p.proj_id, p.proj_no, p.proj_name, p.status, p.contract_amount, p.total_budget, p.actual_cost, p.budget_balance
+    order by exec_rate desc, month_posting_amount desc, p.create_time desc
+  </select>
+</mapper>
