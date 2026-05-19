@@ -39,7 +39,7 @@ public class CostApprovalController extends BaseController
         return success(costApprovalService.selectSummary());
     }
 
-    @PreAuthorize("@ss.hasPermi('cost:approval:approve')")
+    @PreAuthorize("@ss.hasPermi('cost:approval:approve') and @ss.hasPermi('cost:approval:post')")
     @PutMapping("/approve/{billType}/{billId}")
     public AjaxResult approve(@PathVariable String billType, @PathVariable Long billId)
     {

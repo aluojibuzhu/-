@@ -100,11 +100,17 @@ http://localhost:8081
 
 ## 5. 登录账号
 
-默认账号：
+权限矩阵测试账号：
 
 ```text
-admin / admin123
+超级管理员: admin / admin123
+管理员: sys_admin / admin123
+项目经理: project_manager / admin123
+成本会计: cost_accountant / admin123
+项目成员: project_member / admin123
 ```
+
+以上账号已按权限矩阵绑定对应角色，可用于验证不同角色的菜单、按钮和业务权限差异。
 
 当前项目登录页已省略验证码。修改后需要重新启动后端和前端才会生效。
 

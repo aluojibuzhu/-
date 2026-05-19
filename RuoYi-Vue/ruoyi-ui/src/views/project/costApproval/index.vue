@@ -79,7 +79,7 @@
           <template slot-scope="scope">
             <el-button type="text" icon="el-icon-view" @click="handleDetail(scope.row)">详情</el-button>
             <template v-if="scope.row.status === '1'">
-              <el-button type="text" icon="el-icon-check" :loading="submitting" :disabled="submitting" @click="handleApprove(scope.row)" v-hasPermi="['cost:approval:approve']">通过入账</el-button>
+              <el-button v-if="$auth.hasPermiAnd(['cost:approval:approve', 'cost:approval:post'])" type="text" icon="el-icon-check" :loading="submitting" :disabled="submitting" @click="handleApprove(scope.row)">通过入账</el-button>
               <el-button type="text" icon="el-icon-close" class="danger-action" :loading="submitting" :disabled="submitting" @click="handleReject(scope.row)" v-hasPermi="['cost:approval:approve']">驳回</el-button>
             </template>
             <el-button v-if="scope.row.status === '2'" type="text" icon="el-icon-finished" :loading="submitting" :disabled="submitting" @click="handlePost(scope.row)" v-hasPermi="['cost:approval:post']">入账</el-button>
