@@ -76,13 +76,17 @@ export default {
 
     & .sidebar-title {
       display: inline-block;
+      max-width: 150px;
       margin: 0;
+      overflow: hidden;
       color: #fff;
       font-weight: 600;
       line-height: 50px;
-      font-size: 14px;
+      font-size: 13px;
       font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
+      text-overflow: ellipsis;
       vertical-align: middle;
+      white-space: nowrap;
     }
   }
 

@@ -10,6 +10,7 @@ public interface ProjInfoMapper
 {
     ProjInfo selectProjInfoById(Long projId);
     List<ProjInfo> selectProjInfoList(ProjInfo projInfo);
+    int refreshProjectStatusByDate(@Param("username") String username);
     int insertProjInfo(ProjInfo projInfo);
     int updateProjInfo(ProjInfo projInfo);
     int deleteProjInfoById(Long projId);

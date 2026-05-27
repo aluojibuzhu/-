@@ -132,9 +132,10 @@ export default {
     loadProjects() {
       Promise.all([
         listProjInfos({ pageNum: 1, pageSize: 100, status: '2' }),
-        listProjInfos({ pageNum: 1, pageSize: 100, status: '4' })
-      ]).then(([approved, running]) => {
-        this.projects = [].concat(approved.rows || [], running.rows || [])
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '4' }),
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '5' })
+      ]).then(([approved, running, completed]) => {
+        this.projects = [].concat(approved.rows || [], running.rows || [], completed.rows || [])
       }).catch(() => this.$message.error('项目列表加载失败'))
     },
     loadWorkTypes() {

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.ruoyi.system.domain.vo.project.CostDashboardProjectVO;
 import com.ruoyi.system.domain.vo.project.CostDashboardSummaryVO;
 import com.ruoyi.system.mapper.project.CostDashboardMapper;
+import com.ruoyi.system.mapper.project.ProjInfoMapper;
 import com.ruoyi.system.service.project.ICostDashboardService;
 
 @Service
@@ -16,9 +17,12 @@ public class CostDashboardServiceImpl implements ICostDashboardService
 {
     @Autowired
     private CostDashboardMapper costDashboardMapper;
+    @Autowired
+    private ProjInfoMapper projInfoMapper;
 
     public CostDashboardSummaryVO selectSummary(String status)
     {
+        refreshProjectStatusByDate();
         CostDashboardSummaryVO summary = costDashboardMapper.selectSummary(parseStatusList(status));
         if (summary == null)
         {
@@ -38,7 +42,13 @@ public class CostDashboardServiceImpl implements ICostDashboardService
 
     public List<CostDashboardProjectVO> selectProjectList(String status, String keyword)
     {
+        refreshProjectStatusByDate();
         return costDashboardMapper.selectProjectList(parseStatusList(status), keyword);
+    }
+
+    private void refreshProjectStatusByDate()
+    {
+        projInfoMapper.refreshProjectStatusByDate("system");
     }
 
     private BigDecimal nvl(BigDecimal value)

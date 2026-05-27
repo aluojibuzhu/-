@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,11 +50,13 @@ public class WorkHourServiceImpl implements IWorkHourService
 
     public List<WorkHour> selectWorkHourList(WorkHour workHour)
     {
+        refreshProjectStatusByDate();
         return workHourMapper.selectWorkHourList(workHour);
     }
 
     public WorkHourFormVO getWorkHourForm(Long whId)
     {
+        refreshProjectStatusByDate();
         WorkHourFormVO vo = new WorkHourFormVO();
         vo.setWorkHour(workHourMapper.selectWorkHourById(whId));
         vo.setAttachments(attachmentMapper.selectByWhId(whId));
@@ -62,8 +65,9 @@ public class WorkHourServiceImpl implements IWorkHourService
 
     public List<ProjWbsNode> selectWbsNodesByProjId(Long projId)
     {
+        refreshProjectStatusByDate();
         ProjInfo info = projInfoMapper.selectProjInfoById(projId);
-        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS);
+        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED);
         return wbsNodeMapper.selectByProjId(projId);
     }
 
@@ -103,6 +107,7 @@ public class WorkHourServiceImpl implements IWorkHourService
     {
         WorkHour workHour = workHourMapper.selectWorkHourById(whId);
         WorkHourStatus.require(workHour, WorkHourStatus.DRAFT, WorkHourStatus.REJECTED);
+        fillAndValidate(workHour);
         workHour.setStatus(WorkHourStatus.PENDING.code());
         workHour.setSubmitTime(new Date());
         workHour.setUpdateBy(username);
@@ -150,8 +155,9 @@ public class WorkHourServiceImpl implements IWorkHourService
 
     private void fillAndValidate(WorkHour workHour)
     {
+        refreshProjectStatusByDate();
         ProjInfo info = projInfoMapper.selectProjInfoById(workHour.getProjId());
-        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS);
+        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED);
         ProjWbsNode node = wbsNodeMapper.selectByNodeId(workHour.getNodeId());
         if (node == null || !workHour.getProjId().equals(node.getProjId()))
         {
@@ -179,6 +185,7 @@ public class WorkHourServiceImpl implements IWorkHourService
         {
             throw new ServiceException("填报日期不能为空");
         }
+        validateWorkDateWithinProject(workHour.getWorkDate(), info);
         if (workHour.getWorkHours() == null || workHour.getWorkHours().compareTo(BigDecimal.ZERO) <= 0)
         {
             throw new ServiceException("工时数必须大于0");
@@ -204,6 +211,35 @@ public class WorkHourServiceImpl implements IWorkHourService
         workHour.setWorkType(String.valueOf(category.getCategoryId()));
         workHour.setUnitPrice(unitPrice);
         workHour.setWorkCost(workHour.getWorkHours().multiply(unitPrice).setScale(2, RoundingMode.HALF_UP));
+    }
+
+    private void refreshProjectStatusByDate()
+    {
+        projInfoMapper.refreshProjectStatusByDate("system");
+    }
+
+    private void validateWorkDateWithinProject(Date workDate, ProjInfo info)
+    {
+        Date date = truncateDate(workDate);
+        if (info.getPlanStartDate() != null && date.before(truncateDate(info.getPlanStartDate())))
+        {
+            throw new ServiceException("工时填报日期不能早于项目预计开工日期");
+        }
+        if (info.getPlanEndDate() != null && date.after(truncateDate(info.getPlanEndDate())))
+        {
+            throw new ServiceException("工时填报日期不能晚于项目预计竣工日期");
+        }
+    }
+
+    private Date truncateDate(Date date)
+    {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
     }
 
     private void saveAttachments(Long whId, List<WorkHourAttachment> attachments, String username)

@@ -46,11 +46,13 @@ public class ReimbursementServiceImpl implements IReimbursementService
 
     public List<Reimbursement> selectReimbursementList(Reimbursement reimbursement)
     {
+        refreshProjectStatusByDate();
         return reimbursementMapper.selectReimbursementList(reimbursement);
     }
 
     public ReimbursementFormVO getReimbursementForm(Long reimburseId)
     {
+        refreshProjectStatusByDate();
         ReimbursementFormVO vo = new ReimbursementFormVO();
         vo.setReimbursement(reimbursementMapper.selectReimbursementById(reimburseId));
         vo.setAttachments(attachmentMapper.selectByReimburseId(reimburseId));
@@ -59,8 +61,9 @@ public class ReimbursementServiceImpl implements IReimbursementService
 
     public List<ProjWbsNode> selectWbsNodesByProjId(Long projId)
     {
+        refreshProjectStatusByDate();
         ProjInfo info = projInfoMapper.selectProjInfoById(projId);
-        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS);
+        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED);
         return wbsNodeMapper.selectByProjId(projId);
     }
 
@@ -147,8 +150,9 @@ public class ReimbursementServiceImpl implements IReimbursementService
 
     private void fillAndValidate(Reimbursement reimbursement, List<ReimbursementAttachment> attachments)
     {
+        refreshProjectStatusByDate();
         ProjInfo info = projInfoMapper.selectProjInfoById(reimbursement.getProjId());
-        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS);
+        ProjectStatus.require(info, ProjectStatus.APPROVED, ProjectStatus.IN_PROGRESS, ProjectStatus.COMPLETED);
         ProjWbsNode node = wbsNodeMapper.selectByNodeId(reimbursement.getNodeId());
         if (node == null || !reimbursement.getProjId().equals(node.getProjId()))
         {
@@ -205,6 +209,11 @@ public class ReimbursementServiceImpl implements IReimbursementService
         reimbursement.setNodeName(node.getNodeName());
         reimbursement.setExpenseType(rootCategory.getCategoryName());
         reimbursement.setCategoryName(childCategory == null ? null : childCategory.getCategoryName());
+    }
+
+    private void refreshProjectStatusByDate()
+    {
+        projInfoMapper.refreshProjectStatusByDate("system");
     }
 
     private void saveAttachments(Long reimburseId, List<ReimbursementAttachment> attachments, String username)

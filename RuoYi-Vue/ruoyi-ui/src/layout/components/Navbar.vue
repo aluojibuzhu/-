@@ -8,17 +8,10 @@
       <logo v-show="showLogo" :collapse="false"></logo>
       <top-bar id="topbar-container" class="topbar-container" />
     </template>
+
     <div class="right-menu">
-      <template v-if="device!=='mobile'">
+      <template v-if="device !== 'mobile'">
         <search id="header-search" class="right-menu-item" />
-
-        <el-tooltip content="源码地址" effect="dark" placement="bottom">
-          <ruo-yi-git id="ruoyi-git" class="right-menu-item hover-effect" />
-        </el-tooltip>
-
-        <el-tooltip content="文档地址" effect="dark" placement="bottom">
-          <ruo-yi-doc id="ruoyi-doc" class="right-menu-item hover-effect" />
-        </el-tooltip>
 
         <screenfull id="screenfull" class="right-menu-item hover-effect" />
 
@@ -29,19 +22,18 @@
         <el-tooltip content="消息通知" effect="dark" placement="bottom">
           <header-notice id="header-notice" class="right-menu-item hover-effect" />
         </el-tooltip>
-
       </template>
 
       <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="hover">
         <div class="avatar-wrapper">
           <img :src="avatar" class="user-avatar">
-          <span class="user-nickname"> {{ nickName }} </span>
+          <span class="user-nickname">{{ nickName }}</span>
         </div>
         <el-dropdown-menu slot="dropdown">
           <router-link to="/user/profile">
             <el-dropdown-item>个人中心</el-dropdown-item>
           </router-link>
-          <el-dropdown-item @click.native="setLayout" v-if="setting">
+          <el-dropdown-item v-if="setting" @click.native="setLayout">
             <span>布局设置</span>
           </el-dropdown-item>
           <el-dropdown-item @click.native="lockScreen">
@@ -66,8 +58,6 @@ import Hamburger from '@/components/Hamburger'
 import Screenfull from '@/components/Screenfull'
 import SizeSelect from '@/components/SizeSelect'
 import Search from '@/components/HeaderSearch'
-import RuoYiGit from '@/components/RuoYi/Git'
-import RuoYiDoc from '@/components/RuoYi/Doc'
 import HeaderNotice from './HeaderNotice'
 
 export default {
@@ -80,8 +70,6 @@ export default {
     Screenfull,
     SizeSelect,
     Search,
-    RuoYiGit,
-    RuoYiDoc,
     HeaderNotice
   },
   computed: {
@@ -111,7 +99,7 @@ export default {
     toggleSideBar() {
       this.$store.dispatch('app/toggleSideBar')
     },
-    setLayout(event) {
+    setLayout() {
       this.$emit('setLayout')
     },
     lockScreen() {
@@ -143,29 +131,28 @@ export default {
 }
 
 .navbar {
-  height: 50px;
-  overflow: hidden;
-  position: relative;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,21,41,.08);
   display: flex;
   align-items: center;
-  // padding: 0 8px;
+  position: relative;
+  height: 50px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, .08);
   box-sizing: border-box;
 
   .hamburger-container {
-    line-height: 46px;
-    height: 100%;
-    cursor: pointer;
-    transition: background .3s;
-    -webkit-tap-highlight-color:transparent;
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    height: 100%;
     margin-right: 8px;
+    line-height: 46px;
+    cursor: pointer;
+    transition: background .3s;
+    -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: rgba(0, 0, 0, .025)
+      background: rgba(0, 0, 0, .025);
     }
   }
 
@@ -179,20 +166,20 @@ export default {
   }
 
   .topbar-container {
-    flex: 1;
-    min-width: 0;
     display: flex;
     align-items: center;
-    overflow: hidden;
+    flex: 1;
+    min-width: 0;
     margin-left: 8px;
+    overflow: hidden;
   }
 
   .right-menu {
-    height: 100%;
-    line-height: 50px;
     display: flex;
     align-items: center;
+    height: 100%;
     margin-left: auto;
+    line-height: 50px;
 
     &:focus {
       outline: none;
@@ -200,10 +187,10 @@ export default {
 
     .right-menu-item {
       display: inline-block;
-      padding: 0 8px;
       height: 100%;
-      font-size: 18px;
+      padding: 0 8px;
       color: #5a5e66;
+      font-size: 18px;
       vertical-align: text-bottom;
 
       &.hover-effect {
@@ -211,41 +198,39 @@ export default {
         transition: background .3s;
 
         &:hover {
-          background: rgba(0, 0, 0, .025)
+          background: rgba(0, 0, 0, .025);
         }
       }
     }
 
     .avatar-container {
-      margin-right: 0px;
-      padding-right: 0px;
+      margin-right: 0;
+      padding-right: 0;
 
       .avatar-wrapper {
-        margin-top: 10px;
-        right: 8px;
+        display: flex;
+        align-items: center;
         position: relative;
+        right: 8px;
+        height: 100%;
+        padding-left: 8px;
 
         .user-avatar {
-          cursor: pointer;
           width: 30px;
           height: 30px;
           border-radius: 50%;
-        }
-
-        .user-nickname{
-          position: relative;
-          bottom: 10px;
-          left: 2px;
-          font-size: 14px;
-          font-weight: bold;
-        }
-
-        .el-icon-caret-bottom {
           cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
-          font-size: 12px;
+        }
+
+        .user-nickname {
+          max-width: 96px;
+          margin-left: 8px;
+          overflow: hidden;
+          color: #1f2d3d;
+          font-size: 14px;
+          font-weight: 600;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
     }

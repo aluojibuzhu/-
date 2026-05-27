@@ -2,6 +2,7 @@ package com.ruoyi.system.service.project.impl;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ public class ProjInfoServiceImpl implements IProjInfoService
 
     public ProjInfoFormVO getProjForm(Long projId)
     {
+        refreshProjectStatusByDate();
         ProjInfoFormVO vo = new ProjInfoFormVO();
         vo.setProjInfo(projInfoMapper.selectProjInfoById(projId));
         vo.setWbsNodes(wbsNodeMapper.selectByProjId(projId));
@@ -42,7 +44,11 @@ public class ProjInfoServiceImpl implements IProjInfoService
         return vo;
     }
 
-    public List<ProjInfo> selectProjInfoList(ProjInfo projInfo) { return projInfoMapper.selectProjInfoList(projInfo); }
+    public List<ProjInfo> selectProjInfoList(ProjInfo projInfo)
+    {
+        refreshProjectStatusByDate();
+        return projInfoMapper.selectProjInfoList(projInfo);
+    }
 
     @Transactional
     public int saveDraft(ProjInfoFormVO form, String username)
@@ -131,7 +137,7 @@ public class ProjInfoServiceImpl implements IProjInfoService
     {
         ProjInfo info = projInfoMapper.selectProjInfoById(projId);
         ProjectStatus.require(info, ProjectStatus.PENDING);
-        info.setStatus(ProjectStatus.APPROVED.code());
+        info.setStatus(resolveApprovedStatusByDate(info));
         info.setUpdateBy(username);
         return projInfoMapper.updateProjInfo(info);
     }
@@ -191,6 +197,36 @@ public class ProjInfoServiceImpl implements IProjInfoService
         {
             throw new ServiceException("预计竣工日期必须晚于预计开工日期");
         }
+    }
+
+    private void refreshProjectStatusByDate()
+    {
+        projInfoMapper.refreshProjectStatusByDate("system");
+    }
+
+    private String resolveApprovedStatusByDate(ProjInfo info)
+    {
+        Date today = truncateDate(new Date());
+        if (info.getPlanEndDate() != null && !truncateDate(info.getPlanEndDate()).after(today))
+        {
+            return ProjectStatus.COMPLETED.code();
+        }
+        if (info.getPlanStartDate() != null && !truncateDate(info.getPlanStartDate()).after(today))
+        {
+            return ProjectStatus.IN_PROGRESS.code();
+        }
+        return ProjectStatus.APPROVED.code();
+    }
+
+    private Date truncateDate(Date date)
+    {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
     }
 
     private void validateNodes(List<ProjWbsNode> nodes)

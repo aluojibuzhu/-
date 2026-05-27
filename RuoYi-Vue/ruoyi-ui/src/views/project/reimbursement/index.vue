@@ -93,8 +93,13 @@ export default {
       })
     },
     loadProjects() {
-      return Promise.all([listProjInfos({ pageNum: 1, pageSize: 100, status: '2' }), listProjInfos({ pageNum: 1, pageSize: 100, status: '4' })])
-        .then(([approved, running]) => { this.projects = [].concat(approved.rows || [], running.rows || []) })
+      return Promise.all([
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '2' }),
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '4' }),
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '5' })
+      ]).then(([approved, running, completed]) => {
+        this.projects = [].concat(approved.rows || [], running.rows || [], completed.rows || [])
+      })
     },
     loadExpenseCategories() {
       return listCostCategories({ status: '0' }).then(res => {

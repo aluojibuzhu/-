@@ -23,7 +23,7 @@
             </el-col>
             <el-col :xs="24" :sm="12" :lg="8">
               <el-form-item label="所属项目" prop="projId">
-                <el-select v-model="form.workHour.projId" filterable clearable class="field-full" placeholder="请选择已立项项目" @change="handleProjectChange">
+                <el-select v-model="form.workHour.projId" filterable clearable class="field-full" placeholder="请选择可填报项目" @change="handleProjectChange">
                   <el-option v-for="item in projects" :key="item.projId" :label="item.projName" :value="item.projId" />
                 </el-select>
               </el-form-item>
@@ -143,9 +143,10 @@ export default {
     loadProjects() {
       return Promise.all([
         listProjInfos({ pageNum: 1, pageSize: 100, status: '2' }),
-        listProjInfos({ pageNum: 1, pageSize: 100, status: '4' })
-      ]).then(([approved, running]) => {
-        this.projects = [].concat(approved.rows || [], running.rows || [])
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '4' }),
+        listProjInfos({ pageNum: 1, pageSize: 100, status: '5' })
+      ]).then(([approved, running, completed]) => {
+        this.projects = [].concat(approved.rows || [], running.rows || [], completed.rows || [])
       }).catch(() => this.$message.error('项目列表加载失败'))
     },
     loadCategories() {
